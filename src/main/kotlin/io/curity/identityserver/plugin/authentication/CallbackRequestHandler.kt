@@ -17,24 +17,34 @@
 package io.curity.identityserver.plugin.authentication
 
 import io.curity.identityserver.plugin.config.VerisecAuthenticatorPluginConfig
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
-import java.util.Optional
+import java.util.*
 
-class VerisecAuthenticatorRequestHandler(config : VerisecAuthenticatorPluginConfig)
-    : AuthenticatorRequestHandler<RequestModel>
-{
-    override fun preProcess(request: Request, response: Response): RequestModel = RequestModel(request)
-    
-    override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
-    {
-        TODO("not implemented")
+
+class VerisecCallbackRequestHandler(config: VerisecAuthenticatorPluginConfig)
+    : AuthenticatorRequestHandler<CallbackRequestModel> {
+    private val exceptionFactory = config.exceptionFactory
+    private val logger: Logger = LoggerFactory.getLogger(VerisecCallbackRequestHandler::class.java)
+
+    init {
+
     }
-    
-    override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
-    {
-        TODO("not implemented")
+
+
+    override fun get(requestModel: CallbackRequestModel, response: Response): Optional<AuthenticationResult> {
+        throw exceptionFactory.methodNotAllowed()
+    }
+
+    override fun preProcess(request: Request, response: Response): CallbackRequestModel {
+        return CallbackRequestModel(request)
+    }
+
+    override fun post(requestModel: CallbackRequestModel, response: Response): Optional<AuthenticationResult> {
+        return Optional.empty();
     }
 }

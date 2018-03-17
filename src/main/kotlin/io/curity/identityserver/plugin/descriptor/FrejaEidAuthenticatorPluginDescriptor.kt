@@ -16,7 +16,7 @@
 
 package io.curity.identityserver.plugin.descriptor
 
-import io.curity.identityserver.plugin.authentication.UserNameRequestHandler
+import io.curity.identityserver.plugin.authentication.StartRequestHandler
 import io.curity.identityserver.plugin.authentication.WaitRequestHandler
 import io.curity.identityserver.plugin.config.FrejaEidAuthenticatorPluginConfig
 import se.curity.identityserver.sdk.plugin.descriptor.AuthenticatorPluginDescriptor
@@ -24,7 +24,7 @@ import se.curity.identityserver.sdk.plugin.descriptor.AuthenticatorPluginDescrip
 class FrejaEidAuthenticatorPluginDescriptor : AuthenticatorPluginDescriptor<FrejaEidAuthenticatorPluginConfig>
 {
     override fun getAuthenticationRequestHandlerTypes(): Map<String, Class<out se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler<*>>> =
-            mapOf("index" to UserNameRequestHandler::class.java,
+            mapOf("index" to StartRequestHandler::class.java,
                     "wait" to WaitRequestHandler::class.java)
     
     override fun getConfigurationType(): Class<out FrejaEidAuthenticatorPluginConfig> =

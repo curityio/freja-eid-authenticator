@@ -28,13 +28,13 @@ class WaitRequestHandler : AuthenticatorRequestHandler<WaitRequestModel>
 {
     override fun get(requestModel: WaitRequestModel, response: Response): Optional<AuthenticationResult>
     {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("poll Freja using the auth request transaction ID from the session")
     }
     
     override fun preProcess(request: Request, response: Response) = WaitRequestModel(request)
     
     override fun post(requestModel: WaitRequestModel, response: Response): Optional<AuthenticationResult>
     {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("polling is done and the form was submitted")
     }
 }

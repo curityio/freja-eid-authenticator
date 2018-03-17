@@ -25,18 +25,32 @@ import java.util.Optional
 
 class RequestModel(request: Request)
 
-class UserNameRequestHandler(config : FrejaEidAuthenticatorPluginConfig)
+class StartRequestHandler(config : FrejaEidAuthenticatorPluginConfig)
     : AuthenticatorRequestHandler<RequestModel>
 {
     override fun preProcess(request: Request, response: Response): RequestModel = RequestModel(request)
     
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
     {
-        TODO("not implemented")
+        TODO("show username form unless the authenticated state indicates that the user has already logged " +
+                "in (e.g., by a previous authenticator. If the user is already logged in, start authentication " +
+                "at Freja")
     }
     
-    override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
+    override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
+            startAuthentication(requestModel, response)
+            
+    private fun startAuthentication(requestModel: RequestModel, response: Response) : Optional<AuthenticationResult>
     {
-        TODO("not implemented")
+        TODO("""
+            1. Start authentication at Freja.
+            2. Save the resulting authentication transaction ID in the session.
+            3. Return HTML that:
+                A. Informs the user to login on their Freja mobile device
+                B. Has some JavaScript that polls the /wait endpoint using GET (or head)
+                C. A form that is POSTed by the poller to the /wait endpoint when the poller is informed that auth is done
+                """)
+        
+        return Optional.empty()
     }
 }

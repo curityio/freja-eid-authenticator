@@ -24,4 +24,10 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration {
     val sessionManager: SessionManager
 
     val exceptionFactory: ExceptionFactory
+    
+    // HTTP client
+    
+    // Enum of prod and non-prod
+    
+    // Id type -- email or ssn
 }

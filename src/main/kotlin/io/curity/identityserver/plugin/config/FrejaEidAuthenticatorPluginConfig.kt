@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Curity AB
+ *  Copyright 2018 Curity AB
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,8 +14,14 @@
  *  limitations under the License.
  */
 
-package io.curity.identityserver.plugin.authentication
+package io.curity.identityserver.plugin.config;
 
-import se.curity.identityserver.sdk.web.Request
+import se.curity.identityserver.sdk.config.Configuration
+import se.curity.identityserver.sdk.service.ExceptionFactory
+import se.curity.identityserver.sdk.service.SessionManager
 
-class RequestModel(request: Request)
+interface FrejaEidAuthenticatorPluginConfig : Configuration {
+    val sessionManager: SessionManager
+
+    val exceptionFactory: ExceptionFactory
+}

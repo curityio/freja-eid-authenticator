@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Curity AB
+ *  Copyright 2018 Curity AB
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,25 +16,25 @@
 
 package io.curity.identityserver.plugin.authentication
 
-import io.curity.identityserver.plugin.config.VerisecAuthenticatorPluginConfig
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import java.util.Optional
 
-class VerisecAuthenticatorRequestHandler(config : VerisecAuthenticatorPluginConfig)
-    : AuthenticatorRequestHandler<RequestModel>
+class WaitRequestModel(request : Request)
+
+class WaitRequestHandler : AuthenticatorRequestHandler<WaitRequestModel>
 {
-    override fun preProcess(request: Request, response: Response): RequestModel = RequestModel(request)
-    
-    override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
+    override fun get(requestModel: WaitRequestModel, response: Response): Optional<AuthenticationResult>
     {
-        TODO("not implemented")
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
     
-    override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
+    override fun preProcess(request: Request, response: Response) = WaitRequestModel(request)
+    
+    override fun post(requestModel: WaitRequestModel, response: Response): Optional<AuthenticationResult>
     {
-        TODO("not implemented")
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }

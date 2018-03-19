@@ -3,14 +3,58 @@ var myParser = require("body-parser");
 var app = express();
 
 app.use(myParser.json());
-app.post("/authorize", function (request, response) {
+
+var requestCount = 0;
+var authRef = "12345-67890-abcdef";
+app.post("/authentication/1.0/getOneResult", function (request, response) {
+    console.log("Post Request received at : /authentication/1.0/getOneResult");
+    var responseHeaders = getResponseHeaders(request, response);
+    var data = {authRef: authRef};
+    var status = 200;
+
+    if(request.body.authRef!==authRef){
+        status = 400;
+        data = {message: "Invalid authRef"};
+    }
+    else if (requestCount >= 3) {
+        data.status = "APPROVED";
+        requestCount = 0;
+    } else {
+        requestCount++;
+        data.status = "PENDING";
+        status = 400;
+    }
+
+    response.writeHead(status, responseHeaders);
+    response.end(JSON.stringify(data), 'utf-8');
+});
+
+app.post("/authentication/1.0/initAuthentication", function (request, response) {
     handleApiRequest(request, response);
 });
 
 var handleApiRequest = function (request, response) {
 
-    console.log("Serving API");
+    console.log("Post Request received at : /authentication/1.0/initAuthentication");
+    var responseHeaders = getResponseHeaders(request, response);
+    if (!responseHeaders) {
+        return;
+    }
+    var data = {};
+    if (request.body.userInfo && request.body.userInfoType) {
+        data = {authRef: authRef};
+        response.writeHead(200, responseHeaders);
+    } else {
+        response.writeHead(400, responseHeaders);
+    }
+    response.end(JSON.stringify(data), 'utf-8');
 
+    if (!response.finished) {
+        console.log("handleApiRequest: Ending response");
+    }
+};
+
+var getResponseHeaders = function (request, response) {
     var responseHeaders = {
         'Content-Type': 'application/json',
     };
@@ -37,19 +81,7 @@ var handleApiRequest = function (request, response) {
         responseHeaders["Access-Control-Allow-Origin"] = origin;
         responseHeaders["Access-Control-Allow-Credentials"] = "true";
     }
-
-    var data = {};
-    if (request.body.userInfo && request.body.userInfoType) {
-        data = {authRef: "Reference to be submitted in getAuthResults method"};
-        response.writeHead(200, responseHeaders);
-    } else {
-        response.writeHead(400, responseHeaders);
-    }
-    response.end(JSON.stringify(data), 'utf-8');
-
-    if (!response.finished) {
-        console.log("handleApiRequest: Ending response");
-    }
+    return responseHeaders;
 };
 
 //Start the server and make it listen for connections on port 8100

@@ -21,6 +21,13 @@ Required Dependencies
 
 For a list of the dependencies and their versions, run ``mvn dependency:list``. Ensure that all of these are installed in the plugin group; otherwise, they will not be accessible to this plug-in and run-time errors will result.
 
+
+Run Mock Node Server
+""""""""""""""""""""
+In order to run tests you need to run mock node server which will act as Freja e-id server. Execute following command to start mock node server.
+
+``docker-compose up``
+
 More Information
 ~~~~~~~~~~~~~~~~
 

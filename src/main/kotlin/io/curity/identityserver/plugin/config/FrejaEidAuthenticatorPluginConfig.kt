@@ -17,17 +17,36 @@
 package io.curity.identityserver.plugin.config;
 
 import se.curity.identityserver.sdk.config.Configuration
+import se.curity.identityserver.sdk.config.annotation.Description
 import se.curity.identityserver.sdk.service.ExceptionFactory
+import se.curity.identityserver.sdk.service.HttpClient
 import se.curity.identityserver.sdk.service.SessionManager
+import java.util.*
 
 interface FrejaEidAuthenticatorPluginConfig : Configuration {
     val sessionManager: SessionManager
 
     val exceptionFactory: ExceptionFactory
-    
-    // HTTP client
-    
-    // Enum of prod and non-prod
-    
-    // Id type -- email or ssn
+
+    @get:Description("The HTTP client with any proxy and TLS settings")
+    val httpClient: Optional<HttpClient>
+
+    @get:Description("The environment to use for authentication")
+    val environment: PredefinedEnvironment
+
+    @get:Description("User Identifier Type")
+    val userInfoType: UserInfoType
+}
+
+enum class PredefinedEnvironment {
+    @Description("Non-production environment for testing and verification")
+    PRE_PRODUCTION,
+
+    @Description("The production environment should be use")
+    PRODUCTION
+}
+
+enum class UserInfoType {
+    EMAIL,
+    SSN
 }

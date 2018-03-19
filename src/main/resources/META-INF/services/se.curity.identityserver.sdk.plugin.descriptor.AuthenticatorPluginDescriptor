@@ -14,4 +14,4 @@
 #  limitations under the License.
 #
 
-io.curity.identityserver.plugin.descriptor.FrejaEidAuthenticatorPluginDescriptor
+io.curity.identityserver.plugin.frejaeid.descriptor.FrejaEidAuthenticatorPluginDescriptor

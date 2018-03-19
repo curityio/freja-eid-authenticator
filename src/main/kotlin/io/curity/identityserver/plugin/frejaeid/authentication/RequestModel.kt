@@ -1,4 +1,4 @@
-package io.curity.identityserver.plugin.authentication
+package io.curity.identityserver.plugin.frejaeid.authentication
 
 import org.hibernate.validator.constraints.Email
 import org.hibernate.validator.constraints.NotBlank

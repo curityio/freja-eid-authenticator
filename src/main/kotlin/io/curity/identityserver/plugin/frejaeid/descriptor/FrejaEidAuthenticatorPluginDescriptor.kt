@@ -14,11 +14,11 @@
  *  limitations under the License.
  */
 
-package io.curity.identityserver.plugin.descriptor
+package io.curity.identityserver.plugin.frejaeid.descriptor
 
-import io.curity.identityserver.plugin.authentication.StartRequestHandler
-import io.curity.identityserver.plugin.authentication.WaitRequestHandler
-import io.curity.identityserver.plugin.config.FrejaEidAuthenticatorPluginConfig
+import io.curity.identityserver.plugin.frejaeid.authentication.StartRequestHandler
+import io.curity.identityserver.plugin.frejaeid.authentication.WaitRequestHandler
+import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
 import se.curity.identityserver.sdk.plugin.descriptor.AuthenticatorPluginDescriptor
 
 class FrejaEidAuthenticatorPluginDescriptor : AuthenticatorPluginDescriptor<FrejaEidAuthenticatorPluginConfig>
@@ -30,5 +30,5 @@ class FrejaEidAuthenticatorPluginDescriptor : AuthenticatorPluginDescriptor<Frej
     override fun getConfigurationType(): Class<out FrejaEidAuthenticatorPluginConfig> =
         FrejaEidAuthenticatorPluginConfig::class.java
     
-    override fun getPluginImplementationType(): String = "freja-eid"
+    override fun getPluginImplementationType(): String = "frejaeid"
 }

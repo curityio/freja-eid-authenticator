@@ -14,10 +14,10 @@
  *  limitations under the License.
  */
 
-package io.curity.identityserver.plugin.authentication
+package io.curity.identityserver.plugin.frejaeid.authentication
 
-import io.curity.identityserver.plugin.config.FrejaEidAuthenticatorPluginConfig
-import io.curity.identityserver.plugin.config.UserInfoType
+import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
+import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
 import se.curity.identityserver.sdk.authentication.AuthenticatedState
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
@@ -26,22 +26,27 @@ import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel
 import java.util.*
+import kotlin.collections.HashMap
 
 class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
-                          private val authenticatedState : AuthenticatedState)
+                          private val authenticatedState: AuthenticatedState)
     : AuthenticatorRequestHandler<RequestModel> {
 
     override fun preProcess(request: Request, response: Response): RequestModel {
         if (request.isGetRequest) {
             // GET request
 
-            val dataMap: Map<String, String> = if (config.userInfoType.equals(UserInfoType.USERNAME)) {
-                Collections.singletonMap("username", config.userPreferencesManager.username)
-            } else {
-                Collections.singletonMap("email", config.userPreferencesManager.username)
+            val dataMap: HashMap<String, String> = HashMap(2)
+            dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
+            if (config.userPreferencesManager.username != null) {
+                if (config.userInfoType.equals(UserInfoType.USERNAME)) {
+                    dataMap["username"] = config.userPreferencesManager.username
+                } else {
+                    dataMap["email"] = config.userPreferencesManager.username
+                }
+                response.setResponseModel(ResponseModel.templateResponseModel(dataMap as Map<String, Any>?, "authenticate/get"),
+                        Response.ResponseModelScope.NOT_FAILURE)
             }
-            response.setResponseModel(ResponseModel.templateResponseModel(dataMap as Map<String, Any>?, "authenticate/get"),
-                    Response.ResponseModelScope.NOT_FAILURE)
         }
 
         // on request validation failure, we should use the same template as for NOT_FAILURE
@@ -51,7 +56,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     }
 
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
-            if (authenticatedState.isAuthenticated) {
+            if (authenticatedState.isAuthenticated == true) {
                 startAuthentication(requestModel, response)
             } else {
                 Optional.empty()

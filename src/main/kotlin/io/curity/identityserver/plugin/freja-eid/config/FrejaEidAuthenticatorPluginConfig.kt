@@ -21,12 +21,10 @@ import se.curity.identityserver.sdk.config.annotation.Description
 import se.curity.identityserver.sdk.service.ExceptionFactory
 import se.curity.identityserver.sdk.service.HttpClient
 import se.curity.identityserver.sdk.service.SessionManager
+import se.curity.identityserver.sdk.service.UserPreferenceManager
 import java.util.*
 
 interface FrejaEidAuthenticatorPluginConfig : Configuration {
-    val sessionManager: SessionManager
-
-    val exceptionFactory: ExceptionFactory
 
     @get:Description("The HTTP client with any proxy and TLS settings")
     val httpClient: Optional<HttpClient>
@@ -36,6 +34,12 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration {
 
     @get:Description("User Identifier Type")
     val userInfoType: UserInfoType
+
+    val sessionManager: SessionManager
+
+    val exceptionFactory: ExceptionFactory
+
+    val userPreferencesManager : UserPreferenceManager
 }
 
 enum class PredefinedEnvironment {
@@ -43,10 +47,17 @@ enum class PredefinedEnvironment {
     PRE_PRODUCTION,
 
     @Description("The production environment should be use")
-    PRODUCTION
+    PRODUCTION;
+
+    fun getBaseUrl(): String {
+        when (this) {
+            PRE_PRODUCTION -> return "https://services.test.frejaeid.com"
+            PRODUCTION -> return "https://services.prod.frejaeid.com"
+        }
+    }
 }
 
 enum class UserInfoType {
     EMAIL,
-    SSN
+    USERNAME
 }

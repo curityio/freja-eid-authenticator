@@ -31,7 +31,9 @@ import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel.templateResponseModel
+import java.io.UnsupportedEncodingException
 import java.net.URI
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.collections.HashMap
@@ -90,20 +92,20 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 //                C. A form that is POSTed by the poller to the /wait endpoint when the poller is informed that auth is done
 //                """)
 
-        val postData: Map<String, Any> = createPostData(config.userInfoType, requestModel)
+        val postData: Map<String, String> = createPostData(config.userInfoType, requestModel)
         val responseData: Map<String, Any> = getAuthTransaction(postData)
 
         return Optional.empty()
     }
 
-    private fun getAuthTransaction(postData: Map<String, Any>): Map<String, Any> {
+    private fun getAuthTransaction(postData: Map<String, String>): Map<String, Any> {
 
-        val body = HttpRequest.fromString(config.json.toJson(postData), StandardCharsets.UTF_8)
+        val body = Base64.getEncoder().encodeToString(config.json.toJson(postData).toByteArray())
         val httpResponse = getWebServiceClient(config.environment.getHost())
                 .withPath("/1.0/initAuthentication")
                 .request()
-                .contentType("application/json")
-                .body(body)
+                .contentType("application/x-www-form-urlencoded")
+                .body(getFormEncodedBodyFrom(postData))
                 .method("POST")
                 .response()
         val statusCode = httpResponse.statusCode()
@@ -120,11 +122,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         return config.json.fromJson(httpResponse.body(HttpResponse.asString()))
     }
 
-    private fun createPostData(userInfoType: UserInfoType, requestModel: RequestModel): Map<String, Any> {
-        val data = HashMap<String, Any>(3)
+    private fun createPostData(userInfoType: UserInfoType, requestModel: RequestModel): Map<String, String> {
+        val data = HashMap<String, String>(3)
 
-        data["userInfoType"] = userInfoType
-        data["askForBasicUserInfo"] = true
+        data["userInfoType"] = userInfoType.toString()
+        data["askForBasicUserInfo"] = "true"
         if (userInfoType.equals(UserInfoType.EMAIL)) {
             data["userInfo"] = (requestModel.postRequestModel as EmailModel).email
         } else {
@@ -133,6 +135,37 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             data["userInfo"] = Base64.getEncoder().encodeToString(userInfo.toByteArray())
         }
         return data
+    }
+
+    private fun getFormEncodedBodyFrom(data: Map<String, String>): HttpRequest.BodyProcessor {
+        val stringBuilder = StringBuilder()
+
+        data.entries.forEach { e -> appendParameter(stringBuilder, e) }
+
+        return HttpRequest.fromString(stringBuilder.toString())
+    }
+
+    private fun appendParameter(stringBuilder: StringBuilder, entry: Map.Entry<String, String>) {
+        val key = entry.key
+        val value = entry.value
+        val encodedKey = urlEncodeString(key)
+        stringBuilder.append(encodedKey)
+
+        if (!Objects.isNull(value)) {
+            val encodedValue = urlEncodeString(value)
+            stringBuilder.append("=").append(encodedValue)
+        }
+
+        stringBuilder.append("&")
+    }
+
+    private fun urlEncodeString(unencodedString: String): String {
+        try {
+            return URLEncoder.encode(unencodedString, StandardCharsets.UTF_8.name())
+        } catch (e: UnsupportedEncodingException) {
+            throw RuntimeException("This server cannot support UTF-8!", e)
+        }
+
     }
 
     private fun getWebServiceClient(host: String): WebServiceClient = if (config.httpClient.isPresent) {

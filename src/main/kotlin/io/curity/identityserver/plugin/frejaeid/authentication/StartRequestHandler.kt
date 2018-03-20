@@ -24,7 +24,7 @@ import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.http.HttpStatus
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
-import se.curity.identityserver.sdk.web.ResponseModel
+import se.curity.identityserver.sdk.web.ResponseModel.templateResponseModel
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -33,24 +33,23 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     : AuthenticatorRequestHandler<RequestModel> {
 
     override fun preProcess(request: Request, response: Response): RequestModel {
+        val dataMap: HashMap<String, String> = HashMap(2)
+        dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
         if (request.isGetRequest) {
             // GET request
-
-            val dataMap: HashMap<String, String> = HashMap(2)
-            dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
             if (config.userPreferencesManager.username != null) {
                 if (config.userInfoType.equals(UserInfoType.USERNAME)) {
                     dataMap["username"] = config.userPreferencesManager.username
                 } else {
                     dataMap["email"] = config.userPreferencesManager.username
                 }
-                response.setResponseModel(ResponseModel.templateResponseModel(dataMap as Map<String, Any>?, "authenticate/get"),
-                        Response.ResponseModelScope.NOT_FAILURE)
             }
+            response.setResponseModel(templateResponseModel(dataMap as Map<String, Any>?, "authenticate/get"),
+                    Response.ResponseModelScope.NOT_FAILURE)
         }
 
         // on request validation failure, we should use the same template as for NOT_FAILURE
-        response.setResponseModel(ResponseModel.templateResponseModel(emptyMap<String, Any>(),
+        response.setResponseModel(templateResponseModel(dataMap as Map<String, Any>?,
                 "authenticate/get"), HttpStatus.BAD_REQUEST)
         return RequestModel(request)
     }

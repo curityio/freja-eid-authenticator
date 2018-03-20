@@ -52,20 +52,20 @@
     </form>
     #end
     #if ($userInfoType=='email')
-    <form id="usernameForm" method="post" action="$_authUrl">
+    <form id="emailForm" method="post" action="$_authUrl">
 
         <div class="sm-col-12 center">
             <h2>Get started</h2>
             <p>
-                Please enter your username
+                Please enter your email
             </p>
         </div>
 
-        <label for="username" class="$!_errorClass">username</label>
-        <input type="text" id="username" name="username" class="block full-width mb1 field-light $!_errorClass"
+        <label for="email" class="$!_errorClass">Email</label>
+        <input type="text" id="email" name="email" class="block full-width mb1 field-light $!_errorClass"
                autocapitalize="none"
                required
-               value="$!username">
+               value="$!email">
 
         <button type="submit" class="button button-fullwidth button-primary">Next</button>
 

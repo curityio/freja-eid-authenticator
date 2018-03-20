@@ -30,5 +30,5 @@ class FrejaEidAuthenticatorPluginDescriptor : AuthenticatorPluginDescriptor<Frej
     override fun getConfigurationType(): Class<out FrejaEidAuthenticatorPluginConfig> =
         FrejaEidAuthenticatorPluginConfig::class.java
     
-    override fun getPluginImplementationType(): String = "frejaeid"
+    override fun getPluginImplementationType(): String = "freja-eid"
 }

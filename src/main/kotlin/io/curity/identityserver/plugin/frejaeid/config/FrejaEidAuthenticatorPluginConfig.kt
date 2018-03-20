@@ -18,10 +18,7 @@ package io.curity.identityserver.plugin.frejaeid.config;
 
 import se.curity.identityserver.sdk.config.Configuration
 import se.curity.identityserver.sdk.config.annotation.Description
-import se.curity.identityserver.sdk.service.ExceptionFactory
-import se.curity.identityserver.sdk.service.HttpClient
-import se.curity.identityserver.sdk.service.SessionManager
-import se.curity.identityserver.sdk.service.UserPreferenceManager
+import se.curity.identityserver.sdk.service.*
 import java.util.*
 
 interface FrejaEidAuthenticatorPluginConfig : Configuration {
@@ -39,7 +36,11 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration {
 
     val exceptionFactory: ExceptionFactory
 
-    val userPreferencesManager : UserPreferenceManager
+    val userPreferencesManager: UserPreferenceManager
+
+    val webServiceClientFactory: WebServiceClientFactory
+
+    val json: Json
 }
 
 enum class PredefinedEnvironment {
@@ -49,10 +50,10 @@ enum class PredefinedEnvironment {
     @Description("The production environment should be use")
     PRODUCTION;
 
-    fun getBaseUrl(): String {
+    fun getHost(): String {
         when (this) {
-            PRE_PRODUCTION -> return "https://services.test.frejaeid.com"
-            PRODUCTION -> return "https://services.prod.frejaeid.com"
+            PRE_PRODUCTION -> return "services.test.frejaeid.com"
+            PRODUCTION -> return "services.prod.frejaeid.com"
         }
     }
 }

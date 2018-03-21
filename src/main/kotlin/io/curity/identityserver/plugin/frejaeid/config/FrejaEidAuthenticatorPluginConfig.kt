@@ -19,6 +19,7 @@ package io.curity.identityserver.plugin.frejaeid.config;
 import se.curity.identityserver.sdk.config.Configuration
 import se.curity.identityserver.sdk.config.annotation.Description
 import se.curity.identityserver.sdk.service.*
+import se.curity.identityserver.sdk.service.authentication.AuthenticatorInformationProvider
 import java.util.*
 
 interface FrejaEidAuthenticatorPluginConfig : Configuration {
@@ -41,6 +42,8 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration {
     val webServiceClientFactory: WebServiceClientFactory
 
     val json: Json
+
+    val authenticatorInformationProvider: AuthenticatorInformationProvider
 }
 
 enum class PredefinedEnvironment {

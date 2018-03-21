@@ -20,6 +20,7 @@ import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPlug
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import se.curity.identityserver.sdk.attribute.Attribute
 import se.curity.identityserver.sdk.authentication.AuthenticatedState
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
@@ -27,12 +28,15 @@ import se.curity.identityserver.sdk.errors.ErrorCode
 import se.curity.identityserver.sdk.http.HttpRequest
 import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
+import se.curity.identityserver.sdk.http.RedirectStatusCode
 import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel.templateResponseModel
 import java.io.UnsupportedEncodingException
+import java.net.MalformedURLException
 import java.net.URI
+import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -77,35 +81,29 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             startAuthentication(requestModel, response)
 
     private fun startAuthentication(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> {
-        //config.userPreferencesManager.saveUsername()
         if (config.userInfoType.equals(UserInfoType.USERNAME)) {
             config.userPreferencesManager.saveUsername((requestModel.postRequestModel as UsernameModel).username)
         } else {
             config.userPreferencesManager.saveUsername((requestModel.postRequestModel as EmailModel).email)
         }
-//        ("""
-//            1. Start authentication at Freja.
-//            2. Save the resulting authentication transaction ID in the session.
-//            3. Return HTML that:
-//                A. Informs the user to login on their Freja mobile device
-//                B. Has some JavaScript that polls the /wait endpoint using GET (or head)
-//                C. A form that is POSTed by the poller to the /wait endpoint when the poller is informed that auth is done
-//                """)
 
         val postData: Map<String, String> = createPostData(config.userInfoType, requestModel)
         val responseData: Map<String, Any> = getAuthTransaction(postData)
+        if (responseData["authRef"] != null) {
+            config.sessionManager.put(Attribute.of("authRef", responseData["authRef"].toString()))
+            throw config.exceptionFactory.redirectException(getWaitHandlerUrl(), RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+        }
 
         return Optional.empty()
     }
 
     private fun getAuthTransaction(postData: Map<String, String>): Map<String, Any> {
 
-        val body = Base64.getEncoder().encodeToString(config.json.toJson(postData).toByteArray())
         val httpResponse = getWebServiceClient(config.environment.getHost())
-                .withPath("/1.0/initAuthentication")
+                .withPath("/authentication/1.0/initAuthentication")
                 .request()
-                .contentType("application/x-www-form-urlencoded")
-                .body(getFormEncodedBodyFrom(postData))
+                .contentType("application/json")
+                .body(HttpRequest.fromByteArray(config.json.toJson(postData).toByteArray()))
                 .method("POST")
                 .response()
         val statusCode = httpResponse.statusCode()
@@ -166,6 +164,17 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             throw RuntimeException("This server cannot support UTF-8!", e)
         }
 
+    }
+
+    private fun getWaitHandlerUrl(): String {
+        try {
+            val authUri = config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri
+
+            return URL(authUri.toURL(), authUri.path + "/wait").toString()
+        } catch (e: MalformedURLException) {
+            throw config.exceptionFactory.internalServerException(ErrorCode.INVALID_REDIRECT_URI,
+                    "Could not create redirect URI")
+        }
     }
 
     private fun getWebServiceClient(host: String): WebServiceClient = if (config.httpClient.isPresent) {

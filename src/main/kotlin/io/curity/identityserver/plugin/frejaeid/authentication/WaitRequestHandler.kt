@@ -72,12 +72,17 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         if (config.sessionManager.get("authRef") == null) {
             throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE, "authRef cannot be null");
         }
-        val body = HttpRequest.fromByteArray(config.json.toJson(Collections.singletonMap("authRef", config.sessionManager.get("authRef").value)).toByteArray())
+        val postBody = HttpRequest.fromByteArray(("initAuthRequest=" +
+                Base64.getEncoder().encodeToString(
+                        config.json.toJson(
+                                Collections.singletonMap("authRef", config.sessionManager.get("authRef").value))
+                                .toByteArray()))
+                .toByteArray())
         val httpResponse = getWebServiceClient(config.environment.getHost())
                 .withPath("/authentication/1.0/getOneResult")
                 .request()
-                .contentType("application/json")
-                .body(body)
+                .contentType("text/plain")
+                .body(postBody)
                 .method("POST")
                 .response()
         val statusCode = httpResponse.statusCode()

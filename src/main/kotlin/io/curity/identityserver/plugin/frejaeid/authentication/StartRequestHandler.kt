@@ -51,7 +51,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         if (request.isGetRequest) {
             // GET request
             if (config.userPreferencesManager.username != null) {
-                if (config.userInfoType.equals(UserInfoType.USERNAME)) {
+                if (config.userInfoType.equals(UserInfoType.SSN)) {
                     dataMap["username"] = config.userPreferencesManager.username
                 } else {
                     dataMap["email"] = config.userPreferencesManager.username
@@ -78,7 +78,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             startAuthentication(requestModel, response)
 
     private fun startAuthentication(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> {
-        if (config.userInfoType.equals(UserInfoType.USERNAME)) {
+        if (config.userInfoType.equals(UserInfoType.SSN)) {
             config.userPreferencesManager.saveUsername((requestModel.postRequestModel as UsernameModel).username)
         } else {
             config.userPreferencesManager.saveUsername((requestModel.postRequestModel as EmailModel).email)
@@ -126,8 +126,10 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             data["userInfo"] = (requestModel.postRequestModel as EmailModel).email
         } else {
             val username = (requestModel.postRequestModel as UsernameModel).username
-            val userInfo = "{\"country\":\"SE\",\"ssn\":\"$username\"}"
-            data["userInfo"] = Base64.getEncoder().encodeToString(userInfo.toByteArray())
+            val userInfo = HashMap<String, Any>(2)
+            userInfo["country"] = "SE"
+            userInfo["ssn"] = username
+            data["userInfo"] = userInfo
         }
         return data
     }

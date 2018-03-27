@@ -63,5 +63,5 @@ enum class PredefinedEnvironment {
 
 enum class UserInfoType {
     EMAIL,
-    USERNAME
+    SSN
 }

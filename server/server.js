@@ -22,7 +22,6 @@ app.post("/authentication/1.0/getOneResult", function (request, response) {
     } else {
         requestCount++;
         data.status = "PENDING";
-        status = 400;
     }
 
     response.writeHead(status, responseHeaders);

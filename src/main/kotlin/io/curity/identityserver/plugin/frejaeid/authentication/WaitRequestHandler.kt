@@ -16,25 +16,140 @@
 
 package io.curity.identityserver.plugin.frejaeid.authentication
 
+import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
+import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import se.curity.identityserver.sdk.attribute.*
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
+import se.curity.identityserver.sdk.errors.ErrorCode
+import se.curity.identityserver.sdk.http.HttpRequest
+import se.curity.identityserver.sdk.http.HttpResponse
+import se.curity.identityserver.sdk.http.HttpStatus
+import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
-import java.util.Optional
+import se.curity.identityserver.sdk.web.ResponseModel
+import java.net.URI
+import java.util.*
+import kotlin.collections.HashMap
 
-class WaitRequestModel(request : Request)
 
-class WaitRequestHandler : AuthenticatorRequestHandler<WaitRequestModel>
-{
-    override fun get(requestModel: WaitRequestModel, response: Response): Optional<AuthenticationResult>
-    {
-        TODO("poll Freja using the auth request transaction ID from the session")
+class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) : AuthenticatorRequestHandler<Request> {
+
+    private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
+
+    override fun get(requestModel: Request, response: Response): Optional<AuthenticationResult> = Optional.empty()
+
+    override fun preProcess(request: Request, response: Response): Request {
+        if (request.isGetRequest) {
+            response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
+                    Response.ResponseModelScope.NOT_FAILURE)
+        }
+
+        // on request validation failure, we should use the same template as for NOT_FAILURE
+        response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(),
+                "authenticate/wait"), HttpStatus.BAD_REQUEST)
+        return request
     }
-    
-    override fun preProcess(request: Request, response: Response) = WaitRequestModel(request)
-    
-    override fun post(requestModel: WaitRequestModel, response: Response): Optional<AuthenticationResult>
-    {
-        TODO("polling is done and the form was submitted")
+
+    override fun post(requestModel: Request, response: Response): Optional<AuthenticationResult> {
+        val responseData: Map<String, String> = checkAuthenticationStatus() as Map<String, String>
+        if (responseData["status"] == "APPROVED") {
+
+            val jwtParts = Objects.toString(responseData["details"]).split("\\.".toRegex(), 3).toTypedArray()
+
+            if (jwtParts.size < 2) {
+                throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid JWS")
+            }
+
+            val base64Url = Base64.getUrlDecoder()
+            val body = String(base64Url.decode(jwtParts[1]))
+            val claimsMap = config.json.fromJson(body)
+
+            val subjectAttributes = ArrayList<Attribute>()
+
+            if (config.userInfoType == UserInfoType.SSN) {
+                val basicUserInfo: HashMap<String, String>? = when {
+                    claimsMap["basicUserInfo"] != null -> claimsMap["basicUserInfo"] as HashMap<String, String>
+                    responseData["basicUserInfo"] != null -> responseData["basicUserInfo"] as HashMap<String, String>
+                    else -> null
+                }
+                if (basicUserInfo != null) {
+                    subjectAttributes.add(Attribute.of("name", basicUserInfo["name"]))
+                    subjectAttributes.add(Attribute.of("surname", basicUserInfo["surname"]))
+                }
+            }
+
+            subjectAttributes.add(Attribute.of(config.userInfoType.toString(), config.userPreferencesManager.username))
+
+            return Optional.of(
+                    AuthenticationResult(
+                            AuthenticationAttributes.of(
+                                    SubjectAttributes.of(config.userPreferencesManager.username,
+                                            Attributes.of(subjectAttributes)),
+                                    ContextAttributes.of(Attributes.of(
+                                            Attribute.of("timestamp", claimsMap["timestamp"].toString())
+                                    )))))
+        } else if (responseData["status"] == "REJECTED" ||
+                responseData["status"] == "EXPIRED" ||
+                responseData["status"] == "CANCELED") {
+            val dataMap: HashMap<String, String> = HashMap(2)
+            dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
+            dataMap["error"] = "The authorization request has been ${responseData["status"]}."
+            // GET request
+            if (config.userPreferencesManager.username != null) {
+                if (config.userInfoType == UserInfoType.SSN) {
+                    dataMap["username"] = config.userPreferencesManager.username
+                } else {
+                    dataMap["email"] = config.userPreferencesManager.username
+                }
+            }
+            response.setResponseModel(ResponseModel.templateResponseModel(dataMap as MutableMap<String, Any>,
+                    "authenticate/get"),
+                    Response.ResponseModelScope.NOT_FAILURE)
+        } else {
+            response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
+                    Response.ResponseModelScope.NOT_FAILURE)
+        }
+        return Optional.empty()
+    }
+
+    private fun checkAuthenticationStatus(): Map<String, Any> {
+        if (config.sessionManager.get("authRef") == null) {
+            throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE, "authRef cannot be null")
+        }
+        val postBody = HttpRequest.fromByteArray(("getOneAuthResultRequest=" +
+                Base64.getEncoder().encodeToString(
+                        config.json.toJson(
+                                Collections.singletonMap("authRef", config.sessionManager.get("authRef").value))
+                                .toByteArray()))
+                .toByteArray())
+        val httpResponse = getWebServiceClient(config.environment.getHost())
+                .withPath("/authentication/1.0/getOneResult")
+                .request()
+                .contentType("text/plain")
+                .body(postBody)
+                .method("POST")
+                .response()
+        val statusCode = httpResponse.statusCode()
+
+        if (statusCode != 200) {
+            if (_logger.isErrorEnabled) {
+                _logger.error("Got error response from token endpoint: error = {}, {}", statusCode,
+                        httpResponse.body(HttpResponse.asString()))
+            }
+
+            throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR)
+        }
+
+        return config.json.fromJson(httpResponse.body(HttpResponse.asString()))
+    }
+
+    private fun getWebServiceClient(host: String): WebServiceClient = if (config.httpClient.isPresent) {
+        config.webServiceClientFactory.create(config.httpClient.get()).withHost(host)
+    } else {
+        config.webServiceClientFactory.create(URI.create("https://$host"))
     }
 }

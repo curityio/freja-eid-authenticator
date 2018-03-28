@@ -87,11 +87,14 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             return Optional.of(
                     AuthenticationResult(
                             AuthenticationAttributes.of(
-                                    SubjectAttributes.of(config.userPreferencesManager.username, Attributes.of(subjectAttributes)),
+                                    SubjectAttributes.of(config.userPreferencesManager.username,
+                                            Attributes.of(subjectAttributes)),
                                     ContextAttributes.of(Attributes.of(
                                             Attribute.of("timestamp", claimsMap["timestamp"].toString())
                                     )))))
-        } else if (responseData["status"] == "REJECTED" || responseData["status"] == "EXPIRED" || responseData["status"] == "CANCELED") {
+        } else if (responseData["status"] == "REJECTED" ||
+                responseData["status"] == "EXPIRED" ||
+                responseData["status"] == "CANCELED") {
             val dataMap: HashMap<String, String> = HashMap(2)
             dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
             dataMap["error"] = "The authorization request has been ${responseData["status"]}."
@@ -103,7 +106,8 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                     dataMap["email"] = config.userPreferencesManager.username
                 }
             }
-            response.setResponseModel(ResponseModel.templateResponseModel(dataMap as MutableMap<String, Any>, "authenticate/get"),
+            response.setResponseModel(ResponseModel.templateResponseModel(dataMap as MutableMap<String, Any>,
+                    "authenticate/get"),
                     Response.ResponseModelScope.NOT_FAILURE)
         } else {
             response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
@@ -114,7 +118,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
     private fun checkAuthenticationStatus(): Map<String, Any> {
         if (config.sessionManager.get("authRef") == null) {
-            throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE, "authRef cannot be null");
+            throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE, "authRef cannot be null")
         }
         val postBody = HttpRequest.fromByteArray(("getOneAuthResultRequest=" +
                 Base64.getEncoder().encodeToString(

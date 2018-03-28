@@ -88,7 +88,8 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         val responseData: Map<String, Any> = getAuthTransaction(postData)
         if (responseData["authRef"] != null) {
             config.sessionManager.put(Attribute.of("authRef", responseData["authRef"].toString()))
-            throw config.exceptionFactory.redirectException(getWaitHandlerUrl(), RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+            throw config.exceptionFactory.redirectException(getWaitHandlerUrl(),
+                    RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
         }
 
         return Optional.empty()
@@ -100,7 +101,8 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                 .withPath("/authentication/1.0/initAuthentication")
                 .request()
                 .contentType("text/plain")
-                .body(HttpRequest.fromByteArray(("initAuthRequest=" + Base64.getEncoder().encodeToString(config.json.toJson(postData).toByteArray())).toByteArray()))
+                .body(HttpRequest.fromByteArray(("initAuthRequest=" +
+                        Base64.getEncoder().encodeToString(config.json.toJson(postData).toByteArray())).toByteArray()))
                 .method("POST")
                 .response()
         val statusCode = httpResponse.statusCode()

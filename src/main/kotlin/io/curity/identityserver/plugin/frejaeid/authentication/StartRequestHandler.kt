@@ -129,7 +129,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             val userInfo = HashMap<String, Any>(2)
             userInfo["country"] = "SE"
             userInfo["ssn"] = username
-            data["userInfo"] = userInfo
+            data["userInfo"] = Base64.getEncoder().encodeToString(config.json.toJson(userInfo).toByteArray())
         }
         return data
     }

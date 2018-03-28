@@ -121,10 +121,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         val data = HashMap<String, Any>(3)
 
         data["userInfoType"] = userInfoType.toString()
-        data["askForBasicUserInfo"] = true
         if (userInfoType.equals(UserInfoType.EMAIL)) {
+            data["askForBasicUserInfo"] = false
             data["userInfo"] = (requestModel.postRequestModel as EmailModel).email
         } else {
+            data["askForBasicUserInfo"] = true
             val username = (requestModel.postRequestModel as UsernameModel).username
             val userInfo = HashMap<String, Any>(2)
             userInfo["country"] = "SE"

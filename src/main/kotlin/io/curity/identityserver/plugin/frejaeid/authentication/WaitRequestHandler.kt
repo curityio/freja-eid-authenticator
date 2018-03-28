@@ -33,6 +33,8 @@ import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel
 import java.net.URI
 import java.util.*
+import kotlin.collections.HashMap
+
 
 class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) : AuthenticatorRequestHandler<Request> {
 
@@ -55,16 +57,41 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
     override fun post(requestModel: Request, response: Response): Optional<AuthenticationResult> {
         val responseData: Map<String, String> = checkAuthenticationStatus() as Map<String, String>
         if (responseData["status"] == "APPROVED") {
+
+            val jwtParts = Objects.toString(responseData["details"]).split("\\.".toRegex(), 3).toTypedArray()
+
+            if (jwtParts.size < 2) {
+                throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid JWS")
+            }
+
+            val base64Url = Base64.getUrlDecoder()
+            val body = String(base64Url.decode(jwtParts[1]))
+            val claimsMap = config.json.fromJson(body)
+
+            val subjectAttributes = ArrayList<Attribute>()
+
+            if (config.userInfoType == UserInfoType.SSN) {
+                val basicUserInfo: HashMap<String, String>? = when {
+                    claimsMap["basicUserInfo"] != null -> claimsMap["basicUserInfo"] as HashMap<String, String>
+                    responseData["basicUserInfo"] != null -> responseData["basicUserInfo"] as HashMap<String, String>
+                    else -> null
+                }
+                if (basicUserInfo != null) {
+                    subjectAttributes.add(Attribute.of("name", basicUserInfo["name"]))
+                    subjectAttributes.add(Attribute.of("surname", basicUserInfo["surname"]))
+                }
+            }
+
+            subjectAttributes.add(Attribute.of(config.userInfoType.toString(), config.userPreferencesManager.username))
+
             return Optional.of(
                     AuthenticationResult(
                             AuthenticationAttributes.of(
-                                    SubjectAttributes.of(config.userPreferencesManager.username, Attributes.of(
-                                            Attribute.of("username", config.userPreferencesManager.username),
-                                            Attribute.of("authRef", responseData["authRef"])
-                                    )),
-                                    ContextAttributes.of(Attributes.of(Attribute.of("iat", Date().time))))))
-        }
-        else if (responseData["status"] == "REJECTED" || responseData["status"] == "EXPIRED" || responseData["status"] == "CANCELLED") {
+                                    SubjectAttributes.of(config.userPreferencesManager.username, Attributes.of(subjectAttributes)),
+                                    ContextAttributes.of(Attributes.of(
+                                            Attribute.of("timestamp", claimsMap["timestamp"].toString())
+                                    )))))
+        } else if (responseData["status"] == "REJECTED" || responseData["status"] == "EXPIRED" || responseData["status"] == "CANCELED") {
             val dataMap: HashMap<String, String> = HashMap(2)
             dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
             dataMap["error"] = "The authorization request has been ${responseData["status"]}."

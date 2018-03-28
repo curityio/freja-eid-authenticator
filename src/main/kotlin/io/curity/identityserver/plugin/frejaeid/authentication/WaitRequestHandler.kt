@@ -17,6 +17,7 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
+import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import se.curity.identityserver.sdk.attribute.*
@@ -63,8 +64,24 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                                     )),
                                     ContextAttributes.of(Attributes.of(Attribute.of("iat", Date().time))))))
         }
-        response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
-                Response.ResponseModelScope.NOT_FAILURE)
+        else if (responseData["status"] == "REJECTED" || responseData["status"] == "EXPIRED" || responseData["status"] == "CANCELLED") {
+            val dataMap: HashMap<String, String> = HashMap(2)
+            dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
+            dataMap["error"] = "The authorization request has been ${responseData["status"]}."
+            // GET request
+            if (config.userPreferencesManager.username != null) {
+                if (config.userInfoType == UserInfoType.SSN) {
+                    dataMap["username"] = config.userPreferencesManager.username
+                } else {
+                    dataMap["email"] = config.userPreferencesManager.username
+                }
+            }
+            response.setResponseModel(ResponseModel.templateResponseModel(dataMap as MutableMap<String, Any>, "authenticate/get"),
+                    Response.ResponseModelScope.NOT_FAILURE)
+        } else {
+            response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
+                    Response.ResponseModelScope.NOT_FAILURE)
+        }
         return Optional.empty()
     }
 

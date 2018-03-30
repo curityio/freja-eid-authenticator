@@ -23,12 +23,13 @@ import se.curity.identityserver.sdk.plugin.descriptor.AuthenticatorPluginDescrip
 
 class FrejaEidAuthenticatorPluginDescriptor : AuthenticatorPluginDescriptor<FrejaEidAuthenticatorPluginConfig>
 {
-    override fun getAuthenticationRequestHandlerTypes(): Map<String, Class<out se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler<*>>> =
+    override fun getAuthenticationRequestHandlerTypes():
+            Map<String, Class<out se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler<*>>> =
             mapOf("index" to StartRequestHandler::class.java,
                     "wait" to WaitRequestHandler::class.java)
     
     override fun getConfigurationType(): Class<out FrejaEidAuthenticatorPluginConfig> =
-        FrejaEidAuthenticatorPluginConfig::class.java
+            FrejaEidAuthenticatorPluginConfig::class.java
     
     override fun getPluginImplementationType(): String = "freja-eid"
 }

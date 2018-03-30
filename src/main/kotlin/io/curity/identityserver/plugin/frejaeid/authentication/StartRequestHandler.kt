@@ -41,116 +41,154 @@ import kotlin.collections.HashMap
 
 class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                           private val authenticatedState: AuthenticatedState)
-    : AuthenticatorRequestHandler<RequestModel> {
-
+    : AuthenticatorRequestHandler<RequestModel>
+{
     private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
-
-    override fun preProcess(request: Request, response: Response): RequestModel {
-        val dataMap: HashMap<String, String> = HashMap(2)
-        dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
-        if (request.isGetRequest) {
-            // GET request
-            if (config.userPreferencesManager.username != null) {
-                if (config.userInfoType == UserInfoType.SSN) {
-                    dataMap["username"] = config.userPreferencesManager.username
-                } else {
-                    dataMap["email"] = config.userPreferencesManager.username
-                }
+    private val _json = config.json
+    private val _userInfoType = config.userInfoType
+    private val _exceptionFactory = config.exceptionFactory
+    private val _userPreferencesManager = config.userPreferencesManager
+    private val _httpClient = config.httpClient
+    
+    override fun preProcess(request: Request, response: Response): RequestModel
+    {
+        val dataMap = HashMap<String, Any>(1)
+        
+        dataMap["userInfoType"] = _userInfoType.toString().toLowerCase()
+        
+        if (request.isGetRequest)
+        {
+            val username = _userPreferencesManager.username
+            
+            if (_userInfoType == UserInfoType.SSN)
+            {
+                dataMap["username"] = username
             }
-            response.setResponseModel(templateResponseModel(dataMap as Map<String, Any>?, "authenticate/get"),
+            else
+            {
+                dataMap["email"] = username
+            }
+            
+            response.setResponseModel(templateResponseModel(dataMap, "authenticate/get"),
                     Response.ResponseModelScope.NOT_FAILURE)
         }
-
+        
         // on request validation failure, we should use the same template as for NOT_FAILURE
-        response.setResponseModel(templateResponseModel(dataMap as Map<String, Any>?,
-                "authenticate/get"), HttpStatus.BAD_REQUEST)
+        response.setResponseModel(templateResponseModel(dataMap, "authenticate/get"), HttpStatus.BAD_REQUEST)
+        
         return RequestModel(request)
     }
-
+    
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
-            if (authenticatedState.isAuthenticated) {
+            if (authenticatedState.isAuthenticated)
+            {
                 startAuthentication(requestModel, response)
-            } else {
+            }
+            else
+            {
                 Optional.empty()
             }
-
+    
     override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
             startAuthentication(requestModel, response)
-
-    private fun startAuthentication(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> {
-        if (config.userInfoType == UserInfoType.SSN) {
-            config.userPreferencesManager.saveUsername((requestModel.postRequestModel as UsernameModel).username)
-        } else {
-            config.userPreferencesManager.saveUsername((requestModel.postRequestModel as EmailModel).email)
+    
+    private fun startAuthentication(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
+    {
+        val username = when
+        {
+            requestModel.postRequestModel is UsernameModel -> requestModel.postRequestModel.username
+            requestModel.postRequestModel is EmailModel    -> requestModel.postRequestModel.email
+            else                                           ->
+                throw _exceptionFactory.internalServerException(ErrorCode.CONFIGURATION_ERROR)
         }
-
-        val postData: Map<String, Any> = createPostData(config.userInfoType, requestModel)
-        val responseData: Map<String, Any> = getAuthTransaction(postData)
-        if (responseData["authRef"] != null) {
-            config.sessionManager.put(Attribute.of("authRef", responseData["authRef"].toString()))
-            throw config.exceptionFactory.redirectException(getWaitHandlerUrl(),
+        
+        _userPreferencesManager.saveUsername(username)
+        
+        val postData = createPostData(_userInfoType, requestModel)
+        val responseData = getAuthTransaction(postData)
+        val authRef = responseData["authRef"]?.toString()
+        
+        if (authRef != null)
+        {
+            config.sessionManager.put(Attribute.of("authRef", authRef))
+            
+            throw _exceptionFactory.redirectException(getWaitHandlerUrl(),
                     RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
         }
-
+        
         return Optional.empty()
     }
-
-    private fun getAuthTransaction(postData: Map<String, Any>): Map<String, Any> {
-
+    
+    private fun getAuthTransaction(postData: Map<String, Any>): Map<String, Any>
+    {
+        
         val httpResponse = getWebServiceClient(config.environment.getHost())
                 .withPath("/authentication/1.0/initAuthentication")
                 .request()
                 .contentType("text/plain")
                 .body(HttpRequest.fromByteArray(("initAuthRequest=" +
-                        Base64.getEncoder().encodeToString(config.json.toJson(postData).toByteArray())).toByteArray()))
+                        Base64.getEncoder().encodeToString(_json.toJson(postData).toByteArray())).toByteArray()))
                 .method("POST")
                 .response()
         val statusCode = httpResponse.statusCode()
-
-        if (statusCode != 200) {
-            if (_logger.isErrorEnabled) {
+        
+        if (statusCode != 200)
+        {
+            if (_logger.isErrorEnabled)
+            {
                 _logger.error("Got error response from token endpoint: error = {}, {}", statusCode,
                         httpResponse.body(HttpResponse.asString()))
             }
-
-            throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR)
+            
+            throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR)
         }
-
-        return config.json.fromJson(httpResponse.body(HttpResponse.asString()))
+        
+        return _json.fromJson(httpResponse.body(HttpResponse.asString()))
     }
-
-    private fun createPostData(userInfoType: UserInfoType, requestModel: RequestModel): Map<String, Any> {
+    
+    private fun createPostData(userInfoType: UserInfoType, requestModel: RequestModel): Map<String, Any>
+    {
         val data = HashMap<String, Any>(3)
-
+        
         data["userInfoType"] = userInfoType.toString()
-        if (userInfoType.equals(UserInfoType.EMAIL)) {
+        if (userInfoType.equals(UserInfoType.EMAIL))
+        {
             data["askForBasicUserInfo"] = false
             data["userInfo"] = (requestModel.postRequestModel as EmailModel).email
-        } else {
+        }
+        else
+        {
             data["askForBasicUserInfo"] = true
             val username = (requestModel.postRequestModel as UsernameModel).username
             val userInfo = HashMap<String, Any>(2)
             userInfo["country"] = "SE"
             userInfo["ssn"] = username
-            data["userInfo"] = Base64.getEncoder().encodeToString(config.json.toJson(userInfo).toByteArray())
+            data["userInfo"] = Base64.getEncoder().encodeToString(_json.toJson(userInfo).toByteArray())
         }
         return data
     }
-
-    private fun getWaitHandlerUrl(): String {
-        try {
+    
+    private fun getWaitHandlerUrl(): String
+    {
+        try
+        {
             val authUri = config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri
-
+            
             return URL(authUri.toURL(), authUri.path + "/wait").toString()
-        } catch (e: MalformedURLException) {
-            throw config.exceptionFactory.internalServerException(ErrorCode.INVALID_REDIRECT_URI,
+        }
+        catch (e: MalformedURLException)
+        {
+            throw _exceptionFactory.internalServerException(ErrorCode.INVALID_REDIRECT_URI,
                     "Could not create redirect URI")
         }
     }
-
-    private fun getWebServiceClient(host: String): WebServiceClient = if (config.httpClient.isPresent) {
-        config.webServiceClientFactory.create(config.httpClient.get()).withHost(host)
-    } else {
+    
+    private fun getWebServiceClient(host: String): WebServiceClient = if (_httpClient.isPresent)
+    {
+        config.webServiceClientFactory.create(_httpClient.get()).withHost(host)
+    }
+    else
+    {
         config.webServiceClientFactory.create(URI.create("https://$host"))
     }
 }

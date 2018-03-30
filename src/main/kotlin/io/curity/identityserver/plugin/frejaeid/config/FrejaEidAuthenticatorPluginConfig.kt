@@ -22,46 +22,50 @@ import se.curity.identityserver.sdk.service.*
 import se.curity.identityserver.sdk.service.authentication.AuthenticatorInformationProvider
 import java.util.*
 
-interface FrejaEidAuthenticatorPluginConfig : Configuration {
-
+interface FrejaEidAuthenticatorPluginConfig : Configuration
+{
     @get:Description("The HTTP client with any proxy and TLS settings")
     val httpClient: Optional<HttpClient>
-
+    
     @get:Description("The environment to use for authentication")
     val environment: PredefinedEnvironment
-
+    
     @get:Description("User Identifier Type")
     val userInfoType: UserInfoType
-
+    
     val sessionManager: SessionManager
-
+    
     val exceptionFactory: ExceptionFactory
-
+    
     val userPreferencesManager: UserPreferenceManager
-
+    
     val webServiceClientFactory: WebServiceClientFactory
-
+    
     val json: Json
-
+    
     val authenticatorInformationProvider: AuthenticatorInformationProvider
 }
 
-enum class PredefinedEnvironment {
+enum class PredefinedEnvironment
+{
     @Description("Non-production environment for testing and verification")
     PRE_PRODUCTION,
-
+    
     @Description("The production environment should be use")
     PRODUCTION;
-
-    fun getHost(): String {
-        when (this) {
-            PRE_PRODUCTION -> return "services.test.frejaeid.com"
-            PRODUCTION -> return "services.prod.frejaeid.com"
+    
+    fun getHost(): String
+    {
+        return when (this)
+        {
+            PRE_PRODUCTION -> "services.test.frejaeid.com"
+            PRODUCTION     -> "services.prod.frejaeid.com"
         }
     }
 }
 
-enum class UserInfoType {
+enum class UserInfoType
+{
     EMAIL,
     SSN
 }

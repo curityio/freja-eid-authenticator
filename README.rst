@@ -5,8 +5,21 @@ Freja eID Authenticator Plugin
 
 This project provides an opens source Freja eID Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their Freja eID credentials. The app that integrates with Curity may also be configured to receive the Freja eID access token and refresh token, allowing it to manage resources in Freja eID.
 
+
+
+Building the Plugin
+~~~~~~~~~~~~~~~~~~~
+
+You can build the plugin by issue the command ``mvn package``. This will produce a JAR file in the ``target`` directory, which can be installed.
+
+Installing the Plugin
+~~~~~~~~~~~~~~~~~~~~~
+
+To install the plugin, copy the compiled JAR (and all of its dependencies) into the ``${IDSVR_HOME}/usr/share/plugins/${pluginGroup}`` on each node, including the admin node. For more information about installing plugins, refer to the `curity.io/plugins`_.
+
+
 Creating a Freja eID Authenticator in Curity
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configuration using the Admin GUI
 """""""""""""""""""""""""""""""""
@@ -89,15 +102,21 @@ Once all of these changes are made, they will be staged, but not committed (i.e.
 Once the configuration is committed and running, the authenticator can be used like any other.
 
 
-Building the Plugin
-~~~~~~~~~~~~~~~~~~~
+Testing Instructions
+""""""""""""""""""""
+To test the plugin in ``Pre Production`` environment, follow the below instructions.
 
-You can build the plugin by issue the command ``mvn package``. This will produce a JAR file in the ``target`` directory, which can be installed.
+1. Download app from ``AppStore`` or ``PlayStore``.
+2. Start the app in ``Test Mode`` by following instructions from Verisec.
+3. Activate your ID by entering your email and confirming it.
+4. Now you can use this email for testing.
+5. In order to use ``SSN`` for testing, you need to vet your ID first
+6. Upgrade your account from mobile app
+7. Vet your ID from https://vettingportal.test.frejaeid.com
+8. Now you can use your ``SSN`` for testing.
 
-Installing the Plugin
-~~~~~~~~~~~~~~~~~~~~~
+Note :: You can find detailed instructions from documentation provided by Verisec, the document name will be something like : ``Freja eID Relying Party Documentation - Testing instructions.zip``.
 
-To install the plugin, copy the compiled JAR (and all of its dependencies) into the ``${IDSVR_HOME}/usr/share/plugins/${pluginGroup}`` on each node, including the admin node. For more information about installing plugins, refer to the `curity.io/plugins`_.
 
 Required Dependencies
 """""""""""""""""""""

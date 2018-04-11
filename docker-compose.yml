@@ -1,0 +1,4 @@
+node-server:
+  build: ./server
+  ports:
+    - "80:8200"

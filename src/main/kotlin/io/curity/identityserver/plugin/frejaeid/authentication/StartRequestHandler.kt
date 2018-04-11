@@ -136,7 +136,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         {
             if (_logger.isErrorEnabled)
             {
-                _logger.error("Got error response from token endpoint: error = {}, {}", statusCode,
+                _logger.warn("Got error response from authentication endpoint: error = {}, {}", statusCode,
                         httpResponse.body(HttpResponse.asString()))
             }
             
@@ -148,24 +148,24 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     
     private fun createPostData(userInfoType: UserInfoType, requestModel: RequestModel): Map<String, Any>
     {
-        val data = HashMap<String, Any>(3)
+        val dataMap = HashMap<String, Any>(3)
         
-        data["userInfoType"] = userInfoType.toString()
+        dataMap["userInfoType"] = userInfoType.toString()
         if (userInfoType.equals(UserInfoType.EMAIL))
         {
-            data["askForBasicUserInfo"] = false
-            data["userInfo"] = (requestModel.postRequestModel as EmailModel).email
+            dataMap["askForBasicUserInfo"] = false
+            dataMap["userInfo"] = (requestModel.postRequestModel as EmailModel).email
         }
         else
         {
-            data["askForBasicUserInfo"] = true
+            dataMap["askForBasicUserInfo"] = true
             val username = (requestModel.postRequestModel as UsernameModel).username
             val userInfo = HashMap<String, Any>(2)
             userInfo["country"] = "SE"
             userInfo["ssn"] = username
-            data["userInfo"] = Base64.getEncoder().encodeToString(_json.toJson(userInfo).toByteArray())
+            dataMap["userInfo"] = Base64.getEncoder().encodeToString(_json.toJson(userInfo).toByteArray())
         }
-        return data
+        return dataMap
     }
     
     private fun getWaitHandlerUrl(): String

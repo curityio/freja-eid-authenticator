@@ -126,9 +126,27 @@ For a list of the dependencies and their versions, run ``mvn dependency:list``. 
 
 Run Mock Node Server
 """"""""""""""""""""
-In order to run tests you need to run mock node server which will act as Freja e-id server. Execute following command to start mock node server.
+You can also use mock node server for testing which will act as Freja e-id server.
 
-``docker-compose up``
+Follow the instructions below to run and use mock node server.
+
+1. Start the node server using docker compose. Docker and Docker compose should be installed on your machine.
+
+   ``docker-compose up``
+
+2. Change the host value to ``localhost`` in ``FrejaEidAuthenticatorPluginConfig.kt`` like below.
+
+    .. code-block:: kotlin
+        fun getHost(): String
+        {
+            return when (this)
+            {
+                PRE_PRODUCTION -> "localhost"
+                PRODUCTION     -> "localhost"
+            }
+        }
+
+3. Rebuild the plugin and test the authentication flow using test mock server.
 
 More Information
 ~~~~~~~~~~~~~~~~

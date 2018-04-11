@@ -3,7 +3,7 @@ Freja eID Authenticator Plugin
 .. image:: https://travis-ci.org/curityio/freja-eid-authenticator.svg?branch=master
     :target: https://travis-ci.org/curityio/freja-eid-authenticator
 
-This project provides an opens source Freja eID Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their Freja eID credentials. The app that integrates with Curity may also be configured to receive the Freja eID access token and refresh token, allowing it to manage resources in Freja eID.
+This project provides an opens source Freja eID Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their Freja eID credentials.
 
 
 
@@ -30,7 +30,7 @@ To configure a new Freja eID authenticator using the Curity admin UI, do the fol
 2. Click the ``New Authenticator`` button.
 3. Enter a name (e.g., ``freja-eid1``).
 4. For the type, pick the ``Freja eID`` option.
-5. On the next page, you can define all of the standard authenticator configuration options like any previous authenticator that should run, the resulting ACR, transformers that should executed, etc. At the bottom of the configuration page, the Freja eID-specific options can be found.
+5. On the next page, you can define all of the standard authenticator configuration options like any previous authenticator that should run, the resulting ACR, transformers that should be executed, etc. At the bottom of the configuration page, the Freja eID-specific options can be found.
 
     .. figure:: docs/images/freja-eid-authenticator-type-in-curity.png
         :align: center
@@ -41,7 +41,7 @@ To configure a new Freja eID authenticator using the Curity admin UI, do the fol
         The Freja eID-specific configuration is generated dynamically based on the `configuration model defined in the Java interface <https://github.com/curityio/freja-eid-authenticator/blob/master/src/main/java/io/curity/identityserver/plugin/freja-eid/config/FrejaEidAuthenticatorPluginConfig.java>`_.
 
 
-6. Certain required and optional configuration settings may be provided. One of these required settings is the ``HTTP Client`` setting. This is the HTTP client that will be used to communicate with the Freja eID OAuth server.
+6. Certain required configuration settings should be provided. One of these required settings is the ``HTTP Client`` setting. This is the HTTP client that will be used to communicate with the Freja eID OAuth server.
    You need to configure a ``Client SSL Keystore`` and a ``Server Trust Store`` before you create a Http Client.
 
 Create Client SSL Keystore
@@ -80,7 +80,7 @@ Create Http Client
     B. Next to ``HTTP``, click ``New``.
     C. Enter some name (e.g., ``freja-eidClient``).
     D. Enable ``Use Truststore`` toggle button.
-    E. Select the ``Client Keystore`` from dropdown, the one you just created in above steps.
+    E. Select the keystore that you just created in the steps above from the ``Client Keystore`` dropdown.
     F. Click ``Apply``.
 
     .. figure:: docs/images/create-http-client.png
@@ -112,10 +112,10 @@ To test the plugin in ``Pre Production`` environment, follow the below instructi
 4. Now you can use this email for testing.
 5. In order to use ``SSN`` for testing, you need to vet your ID first
 6. Upgrade your account from mobile app
-7. Vet your ID from https://vettingportal.test.frejaeid.com
-8. Now you can use your ``SSN`` for testing.
+7. Vet your ID by following the instructions from Verisec.
+8. After that you can use your ``SSN`` for testing.
 
-Note :: You can find detailed instructions from documentation provided by Verisec, the document name will be something like : ``Freja eID Relying Party Documentation - Testing instructions.zip``.
+Note :: You can find detailed instructions from documentation provided by Verisec.
 
 
 Required Dependencies

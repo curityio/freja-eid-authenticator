@@ -59,16 +59,15 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         if (request.isGetRequest)
         {
             val username = _userPreferencesManager.username
-            
-            if (_userInfoType == UserInfoType.SSN)
-            {
-                dataMap["username"] = username
+
+            if (username != null) {
+                if (_userInfoType == UserInfoType.SSN) {
+                    dataMap["username"] = username
+                } else {
+                    dataMap["email"] = username
+                }
             }
-            else
-            {
-                dataMap["email"] = username
-            }
-            
+
             response.setResponseModel(templateResponseModel(dataMap, "authenticate/get"),
                     Response.ResponseModelScope.NOT_FAILURE)
         }

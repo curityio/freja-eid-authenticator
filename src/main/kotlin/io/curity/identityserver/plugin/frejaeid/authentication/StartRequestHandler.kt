@@ -97,13 +97,20 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         {
             requestModel.postRequestModel is UsernameModel -> requestModel.postRequestModel.username
             requestModel.postRequestModel is EmailModel    -> requestModel.postRequestModel.email
-            else                                           ->
-                throw _exceptionFactory.internalServerException(ErrorCode.CONFIGURATION_ERROR)
+            else                                        ->
+                if (!authenticatedState.isAuthenticated)
+                {
+                    throw _exceptionFactory.internalServerException(ErrorCode.CONFIGURATION_ERROR)
+                }
+                else
+                {
+                    _userPreferencesManager.username
+                }
         }
         
         _userPreferencesManager.saveUsername(username)
         
-        val postData = createPostData(_userInfoType, requestModel)
+        val postData = createPostData(_userInfoType, username)
         val responseData = getAuthTransaction(postData)
         val authRef = responseData["authRef"]?.toString()
         
@@ -120,7 +127,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     
     private fun getAuthTransaction(postData: Map<String, Any>): Map<String, Any>
     {
-        
+
         val httpResponse = getWebServiceClient(config.environment.getHost())
                 .withPath("/authentication/1.0/initAuthentication")
                 .request()
@@ -130,7 +137,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                 .method("POST")
                 .response()
         val statusCode = httpResponse.statusCode()
-        
+
         if (statusCode != 200)
         {
             if (_logger.isErrorEnabled)
@@ -138,14 +145,14 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                 _logger.warn("Got error response from authentication endpoint: error = {}, {}", statusCode,
                         httpResponse.body(HttpResponse.asString()))
             }
-            
+
             throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR)
         }
-        
+
         return _json.fromJson(httpResponse.body(HttpResponse.asString()))
     }
     
-    private fun createPostData(userInfoType: UserInfoType, requestModel: RequestModel): Map<String, Any>
+    private fun createPostData(userInfoType: UserInfoType, username: String): Map<String, Any>
     {
         val dataMap = HashMap<String, Any>(3)
         
@@ -153,12 +160,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         if (userInfoType.equals(UserInfoType.EMAIL))
         {
             dataMap["askForBasicUserInfo"] = false
-            dataMap["userInfo"] = (requestModel.postRequestModel as EmailModel).email
+            dataMap["userInfo"] = username
         }
         else
         {
             dataMap["askForBasicUserInfo"] = true
-            val username = (requestModel.postRequestModel as UsernameModel).username
             val userInfo = HashMap<String, Any>(2)
             userInfo["country"] = "SE"
             userInfo["ssn"] = username

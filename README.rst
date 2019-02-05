@@ -5,8 +5,6 @@ Freja eID Authenticator Plugin
 
 This project provides an opens source Freja eID Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their Freja eID credentials.
 
-
-
 Building the Plugin
 ~~~~~~~~~~~~~~~~~~~
 
@@ -16,7 +14,6 @@ Installing the Plugin
 ~~~~~~~~~~~~~~~~~~~~~
 
 To install the plugin, copy the compiled JAR (and all of its dependencies) into the ``${IDSVR_HOME}/usr/share/plugins/${pluginGroup}`` on each node, including the admin node. For more information about installing plugins, refer to the `curity.io/plugins`_.
-
 
 Creating a Freja eID Authenticator in Curity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,11 +93,11 @@ Create Http Client
 
 8. Select the ``Environment`` to use, either ``Production`` or ``Pre Production``.
 9. Select the ``User Info Type`` from dropdown. It has ``Email`` or ``SSN`` as the allowed options. ``SSN`` corresponds to ``Username``.
+10. If applicable, you may also need to configure the ``Relying Party ID``.
 
 Once all of these changes are made, they will be staged, but not committed (i.e., not running). To make them active, click the ``Commit`` menu option in the ``Changes`` menu. Optionally enter a comment in the ``Deploy Changes`` dialogue and click ``OK``.
 
 Once the configuration is committed and running, the authenticator can be used like any other.
-
 
 Testing Instructions
 """"""""""""""""""""
@@ -116,13 +113,6 @@ To test the plugin in ``Pre Production`` environment, follow the below instructi
 8. After that you can use your ``SSN`` for testing.
 
 Note :: You can find detailed instructions from documentation provided by Verisec.
-
-
-Required Dependencies
-"""""""""""""""""""""
-
-For a list of the dependencies and their versions, run ``mvn dependency:list``. Ensure that all of these are installed in the plugin group; otherwise, they will not be accessible to this plug-in and run-time errors will result.
-
 
 Run Mock Node Server
 """"""""""""""""""""

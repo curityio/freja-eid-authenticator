@@ -14,22 +14,26 @@
 *  limitations under the License.
 *#
 
+#set($_action = $_authUrl + "/wait")
+#set($_restartUrl = $_authUrl)
+#set ( $_maxWaitTime = 120 )
+
 #define ($_body)
-    #parse("fragments/jquery")
-
-<script type="text/javascript" $!nonceAttr>
-    setTimeout(function () {
-        $("#pollingForm").submit();
-    }, 2000);
-</script>
-
 <div class="sm-col-12 center">
     <h2>Authorize App</h2>
     <p>
         Please open Freja e-ID mobile app and authorize the request.
     </p>
 </div>
-<form id="pollingForm" action="$_authUrl/wait" method="post"></form>
+<div class="center p2 loader">
+    #parse("fragments/spinner")
+</div>
+
+<form id="pollingForm" action="$_action" method="post">
+    <input type="hidden" name="moveOn" value="true"/>
+</form>
+
+    #parse("fragments/poller")
 #end
 
 #parse("layouts/default")

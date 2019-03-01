@@ -32,6 +32,9 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration
     
     @get:Description("User Identifier Type")
     val userInfoType: UserInfoType
+
+    @get:Description("The relying party ID")
+    val relyingPartyId : Optional<String>
     
     val sessionManager: SessionManager
     

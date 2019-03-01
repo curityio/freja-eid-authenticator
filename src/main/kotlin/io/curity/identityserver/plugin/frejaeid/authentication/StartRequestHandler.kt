@@ -36,6 +36,7 @@ import se.curity.identityserver.sdk.web.ResponseModel.templateResponseModel
 import java.net.MalformedURLException
 import java.net.URI
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -49,6 +50,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     private val _exceptionFactory = config.exceptionFactory
     private val _userPreferencesManager = config.userPreferencesManager
     private val _httpClient = config.httpClient
+    private val _relyingPartyId = config.relyingPartyId.orElse(null)
     
     override fun preProcess(request: Request, response: Response): RequestModel
     {
@@ -127,13 +129,13 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     
     private fun getAuthTransaction(postData: Map<String, Any>): Map<String, Any>
     {
-
+        val initialRequest = "initAuthRequest=${Base64.getEncoder().encodeToString(_json.toJson(postData).toByteArray())}"
+        val requestBody = _relyingPartyId?.let { "$initialRequest&relyingPartyId=$it" } ?: initialRequest
         val httpResponse = getWebServiceClient(config.environment.getHost())
                 .withPath("/authentication/1.0/initAuthentication")
                 .request()
                 .contentType("text/plain")
-                .body(HttpRequest.fromByteArray(("initAuthRequest=" +
-                        Base64.getEncoder().encodeToString(_json.toJson(postData).toByteArray())).toByteArray()))
+                .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
                 .method("POST")
                 .response()
         val statusCode = httpResponse.statusCode()

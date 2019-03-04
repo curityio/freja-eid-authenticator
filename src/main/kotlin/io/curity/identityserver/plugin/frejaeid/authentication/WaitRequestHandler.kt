@@ -20,7 +20,11 @@ import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPlug
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import se.curity.identityserver.sdk.attribute.*
+import se.curity.identityserver.sdk.attribute.Attribute
+import se.curity.identityserver.sdk.attribute.Attributes
+import se.curity.identityserver.sdk.attribute.AuthenticationAttributes
+import se.curity.identityserver.sdk.attribute.ContextAttributes
+import se.curity.identityserver.sdk.attribute.SubjectAttributes
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.errors.ErrorCode
@@ -33,21 +37,32 @@ import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.util.*
-import kotlin.collections.HashMap
+import java.util.ArrayList
+import java.util.Base64
+import java.util.Collections
+import java.util.Objects
+import java.util.Optional
 
 
-class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) : AuthenticatorRequestHandler<Request>
+class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) : AuthenticatorRequestHandler<RequestModel>
 {
+    companion object
+    {
+        const val SESSION_STATUS = "freja-status"
+        const val SESSION_NAME = "freja-name"
+        const val SESSION_SURNAME = "freja-surname"
+        const val SESSION_TIMESTAMP = "freja-timestamp"
+    }
+
     private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
 
     private val _json = config.json
     private val _sessionManager = config.sessionManager
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
 
-    override fun get(requestModel: Request, response: Response): Optional<AuthenticationResult> = Optional.empty()
+    override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> = Optional.empty()
 
-    override fun preProcess(request: Request, response: Response): Request
+    override fun preProcess(request: Request, response: Response): RequestModel
     {
         if (request.isGetRequest)
         {
@@ -58,82 +73,126 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         // on request validation failure, we should use the same template as for NOT_FAILURE
         response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(),
                 "authenticate/wait"), HttpStatus.BAD_REQUEST)
-        return request
+        return RequestModel(request)
     }
 
-    override fun post(requestModel: Request, response: Response): Optional<AuthenticationResult>
+
+    override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
     {
-        val responseData = checkAuthenticationStatus() as Map<*, *>
-        val status = responseData["status"]
-
-        if (status == "APPROVED")
+        val moveOn = when
         {
-            val jwtParts = Objects.toString(responseData["details"]).split("\\.".toRegex(), 3).toTypedArray()
-
-            if (jwtParts.size < 2)
-            {
-                throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid JWS")
-            }
-
-            val base64Url = Base64.getUrlDecoder()
-            val body = String(base64Url.decode(jwtParts[1]))
-            val claimsMap = _json.fromJson(body)
-            val subjectAttributes = ArrayList<Attribute>()
-
-            if (config.userInfoType == UserInfoType.SSN)
-            {
-                val basicUserInfo = when
-                {
-                    claimsMap["basicUserInfo"] != null    -> claimsMap["basicUserInfo"] as HashMap<*, *>
-                    responseData["basicUserInfo"] != null -> responseData["basicUserInfo"] as HashMap<*, *>
-                    else                                  -> null
-                }
-
-                if (basicUserInfo != null)
-                {
-                    subjectAttributes.add(Attribute.of("name", basicUserInfo["name"].toString()))
-                    subjectAttributes.add(Attribute.of("surname", basicUserInfo["surname"].toString()))
-                }
-            }
-
-            subjectAttributes.add(Attribute.of(config.userInfoType.toString(), config.userPreferencesManager.username))
-
-            return Optional.of(
-                    AuthenticationResult(
-                            AuthenticationAttributes.of(
-                                    SubjectAttributes.of(config.userPreferencesManager.username,
-                                            Attributes.of(subjectAttributes)),
-                                    ContextAttributes.of(Attributes.of(
-                                            Attribute.of("timestamp", claimsMap["timestamp"].toString()))))))
+            requestModel.postRequestModel is WaitModel -> requestModel.postRequestModel.moveOn
+            else -> false
         }
-        else if (status == "REJECTED" || status == "EXPIRED" || status == "CANCELED")
+
+        if (moveOn)
         {
-            val dataMap: HashMap<String, Any> = HashMap(2)
+            val status = _sessionManager.get(SESSION_STATUS)
+                    ?: throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid State")
 
-            dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
-            dataMap["error"] = "The authorization request has been $status."
+            val statusValue = status.value.toString()
+            _sessionManager.remove(SESSION_STATUS)
 
-            // GET request
-            if (config.userPreferencesManager.username != null)
+            if (statusValue == "APPROVED")
             {
-                if (config.userInfoType == UserInfoType.SSN)
-                {
-                    dataMap["username"] = config.userPreferencesManager.username
-                }
-                else
-                {
-                    dataMap["email"] = config.userPreferencesManager.username
-                }
-            }
+                val subjectAttributes = ArrayList<Attribute>()
+                subjectAttributes.add(Attribute.of(config.userInfoType.toString(), config.userPreferencesManager.username))
 
-            response.setResponseModel(ResponseModel.templateResponseModel(dataMap,
-                    "authenticate/get"),
-                    Response.ResponseModelScope.NOT_FAILURE)
+                val nameAttribute = _sessionManager.get(SESSION_NAME)
+                if (nameAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("name", nameAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_NAME)
+                }
+
+                val surnameAttribute = _sessionManager.get(SESSION_SURNAME)
+                if (surnameAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("surname", surnameAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_SURNAME)
+                }
+
+                val timestamp = _sessionManager.get(SESSION_TIMESTAMP)
+                _sessionManager.remove(SESSION_TIMESTAMP)
+
+                return Optional.of(
+                        AuthenticationResult(
+                                AuthenticationAttributes.of(
+                                        SubjectAttributes.of(config.userPreferencesManager.username,
+                                                Attributes.of(subjectAttributes)),
+                                        ContextAttributes.of(Attributes.of(
+                                                Attribute.of("timestamp", timestamp.value.toString()))))))
+            }
+            else if (statusValue == "REJECTED" || statusValue == "EXPIRED" || statusValue == "CANCELED")
+            {
+                val dataMap: HashMap<String, Any> = HashMap(2)
+
+                dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
+                dataMap["error"] = "The authorization request has been ${status.value.toString().toLowerCase()}."
+
+                // GET request
+                if (config.userPreferencesManager.username != null)
+                {
+                    if (config.userInfoType == UserInfoType.SSN)
+                    {
+                        dataMap["username"] = config.userPreferencesManager.username
+                    }
+                    else
+                    {
+                        dataMap["email"] = config.userPreferencesManager.username
+                    }
+                }
+
+                response.setResponseModel(ResponseModel.templateResponseModel(dataMap,
+                        "authenticate/get"),
+                        Response.ResponseModelScope.NOT_FAILURE)
+            }
         }
         else
         {
-            response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
-                    Response.ResponseModelScope.NOT_FAILURE)
+            val responseData = checkAuthenticationStatus() as Map<*, *>
+            val status = responseData["status"]
+            _sessionManager.put(Attribute.of(SESSION_STATUS, status.toString()))
+
+            if (status == "APPROVED")
+            {
+                val jwtParts = Objects.toString(responseData["details"]).split("\\.".toRegex(), 3).toTypedArray()
+
+                if (jwtParts.size < 2)
+                {
+                    throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid JWS")
+                }
+
+                val base64Url = Base64.getUrlDecoder()
+                val body = String(base64Url.decode(jwtParts[1]))
+                val claimsMap = _json.fromJson(body)
+
+                if (config.userInfoType == UserInfoType.SSN)
+                {
+                    val basicUserInfo = when
+                    {
+                        claimsMap["basicUserInfo"] != null -> claimsMap["basicUserInfo"] as HashMap<*, *>
+                        responseData["basicUserInfo"] != null -> responseData["basicUserInfo"] as HashMap<*, *>
+                        else -> null
+                    }
+
+                    if (basicUserInfo != null)
+                    {
+                        _sessionManager.put(Attribute.of(SESSION_NAME, basicUserInfo["name"].toString()))
+                        _sessionManager.put(Attribute.of(SESSION_SURNAME, basicUserInfo["surname"].toString()))
+                    }
+                }
+                _sessionManager.put(Attribute.of(SESSION_TIMESTAMP, claimsMap["timestamp"].toString()))
+
+                //Tell the poller we're ready
+                response.setHttpStatus(HttpStatus.ACCEPTED)
+                return Optional.empty()
+            }
+            else if (status == "REJECTED" || status == "EXPIRED" || status == "CANCELED")
+            {
+                response.setHttpStatus(HttpStatus.ACCEPTED)
+                return Optional.empty()
+            }
         }
 
         return Optional.empty()
@@ -147,7 +206,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
                         "authRef cannot be null")
         val authResultRequest = "getOneAuthResultRequest=${Base64.getEncoder().encodeToString(authRef)}"
-        val requestBody = _relyingPartyId?.let { "$authResultRequest&relyingPartyId=$it"} ?: authResultRequest
+        val requestBody = _relyingPartyId?.let { "$authResultRequest&relyingPartyId=$it" } ?: authResultRequest
         val httpResponse = getWebServiceClient(config.environment.getHost())
                 .withPath("/authentication/1.0/getOneResult")
                 .request()

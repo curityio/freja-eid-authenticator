@@ -29,6 +29,9 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration
     
     @get:Description("The environment to use for authentication")
     val environment: PredefinedEnvironment
+
+    @get:Description("Minimum required registration level of the user")
+    val minimumRegistrationLevel: RegistrationLevel
     
     @get:Description("User Identifier Type")
     val userInfoType: UserInfoType
@@ -47,6 +50,8 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration
     val json: Json
     
     val authenticatorInformationProvider: AuthenticatorInformationProvider
+
+    val attributesToReturn: List<AttributesToReturn>
 }
 
 enum class PredefinedEnvironment
@@ -67,8 +72,26 @@ enum class PredefinedEnvironment
     }
 }
 
+enum class AttributesToReturn
+{
+    BASIC_USER_INFO,
+    EMAIL_ADDRESS,
+    DATE_OF_BIRTH,
+    SSN,
+    CUSTOM_IDENTIFIER,
+    RELYING_PARTY_USER_ID
+}
+
+enum class RegistrationLevel
+{
+    BASIC,
+    EXTENDED,
+    PLUS
+}
+
 enum class UserInfoType
 {
     EMAIL,
-    SSN
+    SSN,
+    PHONE
 }

@@ -20,9 +20,9 @@
 
 #define ($_body)
 <div class="sm-col-12 center">
-    <h2>Authorize App</h2>
+    <h2> #message("authenticator.freja-eid.authenticate.wait.view.title")</h2>
     <p>
-        Please open Freja e-ID mobile app and authorize the request.
+        #message("authenticator.freja-eid.authenticate.wait.view.description")
     </p>
 </div>
 <div class="center p2 loader">

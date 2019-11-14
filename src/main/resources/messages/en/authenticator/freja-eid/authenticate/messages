@@ -15,6 +15,26 @@
 #
 
 meta.title=Freja eID
-validation.error.username.required=You have to enter your username
-validation.error.email.required=You have to enter your email
+view.title=Login
+view.email.label=Email
+view.email.description=Please enter your email
+view.email.placeholder=user@example.com
+view.ssn.label=Personal Number
+view.ssn.description=Please enter your personal number
+view.ssn.placeholder=YYYYMMDDXXXX
+view.phone.label=Phone Number
+view.phone.description=Please enter your phone number
+view.phone.placeholder=+467XXXXXXXX
+view.submit=Next
+
 wait.view.authTimeout=Authentication did not take place within the allowable time limit.
+wait.view.description=Please open Freja eID mobile app and complete the authentication
+wait.view.title=Waiting for Freja eID
+
+validation.error.phone.invalid=The phone number you have entered is invalid
+validation.error.phone.required=You have to enter your phone number
+validation.error.email.invalid=The email you have entered is invalid
+validation.error.email.required=You have to enter your email
+validation.error.ssn.invalid=The personal number you have entered is invalid
+validation.error.ssn.required=You have to enter your personal number
+too.many.attempts=There were too many attempts to authenticate recently, please try again in a few minutes

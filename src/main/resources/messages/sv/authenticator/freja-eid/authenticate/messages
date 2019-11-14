@@ -1,0 +1,42 @@
+#
+#  Copyright 2019 Curity AB
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+
+meta.title=Freja eID
+view.title=Logga in
+view.email.label=E-post
+view.email.description=Var god ange din in e-postadress
+view.email.placeholder=user@example.com
+view.ssn.label=Personnummer
+view.ssn.description=Var god ange ditt personnummer
+view.ssn.placeholder=ÅÅÅÅMMDDXXXX
+view.phone.label=Telefonnummer
+view.phone.description=Var god ange ditt telefonnummer
+view.phone.placeholder=+467XXXXXXXX
+view.submit=Nästa
+
+wait.view.authTimeout=Inloggningsförfrågan tog för lång tid att utföra
+wait.view.description=Öppna Freja eID-app för att slutföra inloggnignen
+wait.view.title=Väntar på Freja eID
+
+validation.error.phone.invalid=Telefonnummret du angett är ogiltigt
+validation.error.phone.required=Du måste ange ditt telefonnummer
+validation.error.email.invalid=E-postadressen du angett är ogiltig
+validation.error.email.required=Du måste ange din e-post
+validation.error.ssn.invalid=Personnummret du angett är ogiltigt
+validation.error.ssn.required=Du måste ange ditt personnummer
+too.many.attempts=För många försök. Du måste vänta ett tag innan du får försöka igen
+
+

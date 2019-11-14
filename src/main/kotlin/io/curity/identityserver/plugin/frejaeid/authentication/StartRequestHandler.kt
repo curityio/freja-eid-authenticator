@@ -16,7 +16,9 @@
 
 package io.curity.identityserver.plugin.frejaeid.authentication
 
+import io.curity.identityserver.plugin.frejaeid.config.AttributesToReturn
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
+import io.curity.identityserver.plugin.frejaeid.config.RegistrationLevel
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -29,6 +31,7 @@ import se.curity.identityserver.sdk.http.HttpRequest
 import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
 import se.curity.identityserver.sdk.http.RedirectStatusCode
+import se.curity.identityserver.sdk.service.ExceptionFactory
 import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
@@ -37,8 +40,9 @@ import java.net.MalformedURLException
 import java.net.URI
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.util.*
-import kotlin.collections.HashMap
+import java.util.Base64
+import java.util.Collections
+import java.util.Optional
 
 class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                           private val authenticatedState: AuthenticatedState)
@@ -47,39 +51,38 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
     private val _json = config.json
     private val _userInfoType = config.userInfoType
+    private val _minRegistrationLevel = config.minimumRegistrationLevel
+    private val _attributesToReturn = config.attributesToReturn
     private val _exceptionFactory = config.exceptionFactory
     private val _userPreferencesManager = config.userPreferencesManager
     private val _httpClient = config.httpClient
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
-    
+
     override fun preProcess(request: Request, response: Response): RequestModel
     {
         val dataMap = HashMap<String, Any>(2)
-        
+
         dataMap["userInfoType"] = _userInfoType.toString().toLowerCase()
-        
+
         if (request.isGetRequest)
         {
             val username = _userPreferencesManager.username
 
-            if (username != null) {
-                if (_userInfoType == UserInfoType.SSN) {
-                    dataMap["username"] = username
-                } else {
-                    dataMap["email"] = username
-                }
+            if (username != null)
+            {
+                dataMap["username"] = username
             }
 
             response.setResponseModel(templateResponseModel(dataMap, "authenticate/get"),
                     Response.ResponseModelScope.NOT_FAILURE)
         }
-        
+
         // on request validation failure, we should use the same template as for NOT_FAILURE
         response.setResponseModel(templateResponseModel(dataMap, "authenticate/get"), HttpStatus.BAD_REQUEST)
-        
-        return RequestModel(request)
+
+        return RequestModel(request, _userInfoType)
     }
-    
+
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
             if (authenticatedState.isAuthenticated)
             {
@@ -89,17 +92,18 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             {
                 Optional.empty()
             }
-    
+
     override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
             startAuthentication(requestModel, response)
-    
+
     private fun startAuthentication(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
     {
         val username = when
         {
-            requestModel.postRequestModel is UsernameModel -> requestModel.postRequestModel.username
-            requestModel.postRequestModel is EmailModel    -> requestModel.postRequestModel.email
-            else                                        ->
+            requestModel.postRequestModel is SSNRequestModel -> requestModel.postRequestModel.username
+            requestModel.postRequestModel is EmailModel -> requestModel.postRequestModel.username
+            requestModel.postRequestModel is PhoneRequestModel -> requestModel.postRequestModel.username
+            else ->
                 if (!authenticatedState.isAuthenticated)
                 {
                     throw _exceptionFactory.internalServerException(ErrorCode.CONFIGURATION_ERROR)
@@ -109,27 +113,27 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                     _userPreferencesManager.username
                 }
         }
-        
+
         _userPreferencesManager.saveUsername(username)
-        
+
         val postData = createPostData(_userInfoType, username)
         val responseData = getAuthTransaction(postData)
         val authRef = responseData["authRef"]?.toString()
-        
+
         if (authRef != null)
         {
             config.sessionManager.put(Attribute.of("authRef", authRef))
-            
+
             throw _exceptionFactory.redirectException(getWaitHandlerUrl(),
                     RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
         }
-        
+
         return Optional.empty()
     }
-    
+
     private fun getAuthTransaction(postData: Map<String, Any>): Map<String, Any>
     {
-        val initialRequest = "initAuthRequest=${Base64.getEncoder().encodeToString(_json.toJson(postData).toByteArray())}"
+        val initialRequest = "initAuthRequest=${Base64.getEncoder().encodeToString(buildJsonAuthRequest(postData).toByteArray())}"
         val requestBody = _relyingPartyId?.let { "$initialRequest&relyingPartyId=$it" } ?: initialRequest
         val httpResponse = getWebServiceClient(config.environment.getHost())
                 .withPath("/authentication/1.0/initAuthentication")
@@ -142,10 +146,15 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
         if (statusCode != 200)
         {
-            if (_logger.isErrorEnabled)
+            if (_logger.isWarnEnabled)
             {
                 _logger.warn("Got error response from authentication endpoint: error = {}, {}", statusCode,
                         httpResponse.body(HttpResponse.asString()))
+            }
+
+            if (_json.fromJson(httpResponse.body(HttpResponse.asString()))["code"] == 2000)
+            {
+                throw _exceptionFactory.badRequestException(ErrorCode.EXTERNAL_SERVICE_ERROR, "too.many.attempts")
             }
 
             throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR)
@@ -153,34 +162,56 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
         return _json.fromJson(httpResponse.body(HttpResponse.asString()))
     }
-    
+
+    private fun buildJsonAuthRequest(postData: Map<String, Any>): String
+    {
+        return "{" + postData.map {
+            val value = when
+            {
+                it.value is String -> "\"" + it.value + "\""
+                else -> it.value
+            }
+            "\"" + it.key + "\"" + ":" + value
+        }.joinToString() + "}"
+    }
+
     private fun createPostData(userInfoType: UserInfoType, username: String): Map<String, Any>
     {
         val dataMap = HashMap<String, Any>(3)
-        
+
         dataMap["userInfoType"] = userInfoType.toString()
-        if (userInfoType.equals(UserInfoType.EMAIL))
+        dataMap["minRegistrationLevel"] = _minRegistrationLevel.toString()
+        if (userInfoType.equals(UserInfoType.SSN))
         {
-            dataMap["askForBasicUserInfo"] = false
-            dataMap["userInfo"] = username
-        }
-        else
-        {
-            dataMap["askForBasicUserInfo"] = true
             val userInfo = HashMap<String, Any>(2)
             userInfo["country"] = "SE"
             userInfo["ssn"] = username
             dataMap["userInfo"] = Base64.getEncoder().encodeToString(_json.toJson(userInfo).toByteArray())
         }
+        else
+        {
+            dataMap["userInfo"] = username
+        }
+
+        if (_minRegistrationLevel == RegistrationLevel.BASIC && _attributesToReturn.contains(AttributesToReturn.EMAIL_ADDRESS))
+        {
+            dataMap["attributesToReturn"] = Collections.singletonList(
+                    "{\"attribute\":\"" + AttributesToReturn.EMAIL_ADDRESS + "\"}")
+        }
+        else if (_attributesToReturn.isNotEmpty() && _minRegistrationLevel != RegistrationLevel.BASIC)
+        {
+            dataMap["attributesToReturn"] = _attributesToReturn.map { "{\"attribute\":\"$it\"}" }
+        }
+
         return dataMap
     }
-    
+
     private fun getWaitHandlerUrl(): String
     {
         try
         {
             val authUri = config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri
-            
+
             return URL(authUri.toURL(), authUri.path + "/wait").toString()
         }
         catch (e: MalformedURLException)
@@ -189,7 +220,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                     "Could not create redirect URI")
         }
     }
-    
+
     private fun getWebServiceClient(host: String): WebServiceClient = if (_httpClient.isPresent)
     {
         config.webServiceClientFactory.create(_httpClient.get()).withHost(host)

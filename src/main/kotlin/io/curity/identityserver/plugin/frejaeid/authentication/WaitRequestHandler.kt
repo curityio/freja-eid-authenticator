@@ -51,6 +51,12 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         const val SESSION_STATUS = "freja-status"
         const val SESSION_NAME = "freja-name"
         const val SESSION_SURNAME = "freja-surname"
+        const val SESSION_EMAIL = "freja-email"
+        const val SESSION_DATE_OF_BIRTH = "freja-date-of-birth"
+        const val SESSION_SSN = "freja-ssn"
+        const val SESSION_COUNTRY = "freja-country"
+        const val SESSION_RP_USER_ID = "freja-rp-user-id"
+        const val SESSION_CUSTOM_IDENTIFIER = "freja-custom-identifier"
         const val SESSION_TIMESTAMP = "freja-timestamp"
     }
 
@@ -73,7 +79,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         // on request validation failure, we should use the same template as for NOT_FAILURE
         response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(),
                 "authenticate/wait"), HttpStatus.BAD_REQUEST)
-        return RequestModel(request)
+        return RequestModel(request, null)
     }
 
 
@@ -96,7 +102,6 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             if (statusValue == "APPROVED")
             {
                 val subjectAttributes = ArrayList<Attribute>()
-                subjectAttributes.add(Attribute.of(config.userInfoType.toString(), config.userPreferencesManager.username))
 
                 val nameAttribute = _sessionManager.get(SESSION_NAME)
                 if (nameAttribute != null)
@@ -110,6 +115,48 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 {
                     subjectAttributes.add(Attribute.of("surname", surnameAttribute.value.toString()))
                     _sessionManager.remove(SESSION_SURNAME)
+                }
+
+                val emailAttribute = _sessionManager.get(SESSION_EMAIL)
+                if (emailAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("email", emailAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_EMAIL)
+                }
+
+                val dateOfBirthAttribute = _sessionManager.get(SESSION_DATE_OF_BIRTH)
+                if (dateOfBirthAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("dateOfBirth", dateOfBirthAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_DATE_OF_BIRTH)
+                }
+
+                val ssnAttribute = _sessionManager.get(SESSION_SSN)
+                if (ssnAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("ssn", ssnAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_SSN)
+                }
+
+                val countryAttribute = _sessionManager.get(SESSION_COUNTRY)
+                if (countryAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("country", countryAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_COUNTRY)
+                }
+
+                val customIdentifierAttribute = _sessionManager.get(SESSION_CUSTOM_IDENTIFIER)
+                if (customIdentifierAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("custom-identifier", customIdentifierAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_CUSTOM_IDENTIFIER)
+                }
+
+                val relyingPartyUserIdAttribute = _sessionManager.get(SESSION_RP_USER_ID)
+                if (relyingPartyUserIdAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("relyingPartyUserId", relyingPartyUserIdAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_RP_USER_ID)
                 }
 
                 val timestamp = _sessionManager.get(SESSION_TIMESTAMP)
@@ -165,30 +212,60 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
                 val base64Url = Base64.getUrlDecoder()
                 val body = String(base64Url.decode(jwtParts[1]))
-                val claimsMap = _json.fromJson(body)
+                val claimsMap = _json.toAttributes(body)
 
-                if (config.userInfoType == UserInfoType.SSN)
+                val requestedAttributes = when
                 {
-                    val basicUserInfo = when
-                    {
-                        claimsMap["basicUserInfo"] != null -> claimsMap["basicUserInfo"] as HashMap<*, *>
-                        responseData["basicUserInfo"] != null -> responseData["basicUserInfo"] as HashMap<*, *>
-                        else -> null
-                    }
+                    claimsMap["requestedAttributes"] != null -> claimsMap["requestedAttributes"] as Attribute
+                    responseData["requestedAttributes"] != null -> responseData["requestedAttributes"] as Attribute
+                    else -> null
+                }
 
-                    if (basicUserInfo != null)
+                if (requestedAttributes != null)
+                {
+                    val requestedAttributesMap = requestedAttributes.getValueOfType(HashMap::class.java)
+                    if (requestedAttributesMap.containsKey("basicUserInfo"))
                     {
+                        val basicUserInfo = requestedAttributesMap["basicUserInfo"] as HashMap<*, *>
                         _sessionManager.put(Attribute.of(SESSION_NAME, basicUserInfo["name"].toString()))
                         _sessionManager.put(Attribute.of(SESSION_SURNAME, basicUserInfo["surname"].toString()))
                     }
+
+                    if (requestedAttributesMap.containsKey("emailAddress"))
+                    {
+                        _sessionManager.put(Attribute.of(SESSION_EMAIL, requestedAttributesMap["emailAddress"].toString()))
+                    }
+
+                    if (requestedAttributesMap.containsKey("dateOfBirth"))
+                    {
+                        _sessionManager.put(Attribute.of(SESSION_DATE_OF_BIRTH, requestedAttributesMap["dateOfBirth"].toString()))
+                    }
+
+                    if (requestedAttributesMap.containsKey("ssn"))
+                    {
+                        val ssn = requestedAttributesMap["ssn"] as HashMap<*, *>
+                        _sessionManager.put(Attribute.of(SESSION_SSN, ssn["ssn"].toString()))
+                        _sessionManager.put(Attribute.of(SESSION_COUNTRY, ssn["country"].toString()))
+                    }
+
+                    if (requestedAttributesMap.containsKey("relyingPartyUserId"))
+                    {
+                        _sessionManager.put(Attribute.of(SESSION_RP_USER_ID, requestedAttributesMap["relyingPartyUserId"].toString()))
+                    }
+
+                    if (requestedAttributesMap.containsKey("customIdentifier"))
+                    {
+                        _sessionManager.put(Attribute.of(SESSION_CUSTOM_IDENTIFIER, requestedAttributesMap["customIdentifier"].toString()))
+                    }
                 }
+
                 _sessionManager.put(Attribute.of(SESSION_TIMESTAMP, claimsMap["timestamp"].toString()))
 
                 //Tell the poller we're ready
                 response.setHttpStatus(HttpStatus.ACCEPTED)
                 return Optional.empty()
             }
-            else if (status == "REJECTED" || status == "EXPIRED" || status == "CANCELED")
+            else if (status == "REJECTED" || status == "EXPIRED" || status == "CANCELED" || status == "RP_CANCELED")
             {
                 response.setHttpStatus(HttpStatus.ACCEPTED)
                 return Optional.empty()

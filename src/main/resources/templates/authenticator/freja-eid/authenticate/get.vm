@@ -14,6 +14,15 @@
 *  limitations under the License.
 *#
 
+#define($description)authenticator.freja-eid.authenticate.view.${userInfoType}.description#end
+#define($label)authenticator.freja-eid.authenticate.view.${userInfoType}.label#end
+#define($placeholder)authenticator.freja-eid.authenticate.view.${userInfoType}.placeholder#end
+#if ($userInfoType=='email')
+    #set($fielType = 'email')
+#else
+    #set($fielType = 'text')
+#end
+
 #define ($_body)
 
     #if ($_errors.toArray()[0]=='validation.error.username.required')
@@ -31,46 +40,25 @@
         $!error<br>
     </div>
 </div>
-    #if ($userInfoType=='ssn')
     <form id="usernameForm" method="post" action="$_authUrl">
 
         <div class="sm-col-12 center">
-            <h2>Get started</h2>
+            <h2>#message("authenticator.freja-eid.authenticate.view.title")</h2>
             <p>
-                Please enter your username
+                #message($description)
             </p>
         </div>
 
-        <label for="username" class="$!_errorClass">username</label>
-        <input type="text" id="username" name="username" class="block full-width mb1 field-light $!_errorClass"
+        <label for="username" class="$!_errorClass">#message($label)</label>
+        <input type="$fielType" id="username" name="username" class="block full-width mb1 field-light $!_errorClass"
                autocapitalize="none"
+               placeholder="#message($placeholder)"
                required
                value="$!username">
 
-        <button type="submit" class="button button-fullwidth button-primary">Next</button>
+        <button type="submit" class="button button-fullwidth button-primary">#message("authenticator.freja-eid.authenticate.view.submit")</button>
 
     </form>
-    #end
-    #if ($userInfoType=='email')
-    <form id="emailForm" method="post" action="$_authUrl">
-
-        <div class="sm-col-12 center">
-            <h2>Get started</h2>
-            <p>
-                Please enter your email
-            </p>
-        </div>
-
-        <label for="email" class="$!_errorClass">Email</label>
-        <input type="text" id="email" name="email" class="block full-width mb1 field-light $!_errorClass"
-               autocapitalize="none"
-               required
-               value="$!email">
-
-        <button type="submit" class="button button-fullwidth button-primary">Next</button>
-
-    </form>
-    #end
 #end
 
 #parse("layouts/default")

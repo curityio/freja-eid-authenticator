@@ -86,7 +86,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
             if (authenticatedState.isAuthenticated)
             {
-                startAuthentication(requestModel, response)
+                startAuthentication(requestModel)
             }
             else
             {
@@ -94,9 +94,9 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             }
 
     override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
-            startAuthentication(requestModel, response)
+            startAuthentication(requestModel)
 
-    private fun startAuthentication(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
+    private fun startAuthentication(requestModel: RequestModel): Optional<AuthenticationResult>
     {
         val username = when
         {

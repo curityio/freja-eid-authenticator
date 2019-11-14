@@ -32,6 +32,7 @@ import se.curity.identityserver.sdk.http.HttpRequest
 import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
 import se.curity.identityserver.sdk.http.RedirectStatusCode
+import se.curity.identityserver.sdk.service.Json
 import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
@@ -169,7 +170,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             val value = when
             {
                 it.value is String -> "\"" + it.value + "\""
-                else -> it.value
+                else -> _json.toJson(it.value)
             }
             "\"" + it.key + "\"" + ":" + value
         }.joinToString() + "}"
@@ -195,12 +196,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
         if (_minRegistrationLevel == RegistrationLevel.BASIC && _attributesToReturn.contains(AttributesToReturn.EMAIL_ADDRESS))
         {
-            dataMap["attributesToReturn"] = Collections.singletonList(
-                    "{\"attribute\":\"" + AttributesToReturn.EMAIL_ADDRESS + "\"}")
+            dataMap["attributesToReturn"] = Collections.singletonList(mapOf("attribute" to AttributesToReturn.EMAIL_ADDRESS))
         }
         else if (_attributesToReturn.isNotEmpty() && _minRegistrationLevel != RegistrationLevel.BASIC)
         {
-            dataMap["attributesToReturn"] = _attributesToReturn.map { "{\"attribute\":\"$it\"}" }
+            dataMap["attributesToReturn"] = _attributesToReturn.map { mapOf("attribute" to it)}
         }
 
         return dataMap

@@ -31,6 +31,7 @@ import se.curity.identityserver.sdk.errors.ErrorCode
 import se.curity.identityserver.sdk.http.HttpRequest
 import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
+import se.curity.identityserver.sdk.http.RedirectStatusCode
 import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
@@ -50,6 +51,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
     {
         const val SESSION_STATUS = "freja-status"
         const val SESSION_NAME = "freja-name"
+        const val SESSION_AUTH_REF = "freja-authref"
         const val SESSION_SURNAME = "freja-surname"
         const val SESSION_EMAIL = "freja-email"
         const val SESSION_DATE_OF_BIRTH = "freja-date-of-birth"
@@ -91,13 +93,26 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             else -> false
         }
 
-        if (moveOn)
+        val cancel = when
+        {
+            requestModel.postRequestModel is WaitModel -> requestModel.postRequestModel.cancel
+            else -> false
+        }
+
+        if (cancel)
+        {
+            cancelAuthentication()
+            throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri,
+                    RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+        }
+        else if (moveOn)
         {
             val status = _sessionManager.get(SESSION_STATUS)
                     ?: throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid State")
 
             val statusValue = status.value.toString()
             _sessionManager.remove(SESSION_STATUS)
+            _sessionManager.remove(SESSION_AUTH_REF)
 
             if (statusValue == "APPROVED")
             {
@@ -275,9 +290,38 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         return Optional.empty()
     }
 
+    private fun cancelAuthentication()
+    {
+        val authRef = _sessionManager.get(SESSION_AUTH_REF)?.let {
+            _json.toJson(Collections.singletonMap("authRef", it.value)).toByteArray()
+        }
+                ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
+                        "authRef cannot be null")
+        _sessionManager.remove(SESSION_AUTH_REF)
+        val authResultRequest = "cancelAuthRequest=${Base64.getEncoder().encodeToString(authRef)}"
+        val requestBody = _relyingPartyId?.let { "$authResultRequest&relyingPartyId=$it" } ?: authResultRequest
+        val httpResponse = getWebServiceClient(config.environment.getHost())
+                .withPath("/authentication/1.0/cancel")
+                .request()
+                .contentType("text/plain")
+                .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
+                .method("POST")
+                .response()
+        val statusCode = httpResponse.statusCode()
+
+        if (statusCode != 200)
+        {
+            if (_logger.isWarnEnabled)
+            {
+                _logger.warn("Got error response from cancel endpoint: error = {}, {}", statusCode,
+                        httpResponse.body(HttpResponse.asString()))
+            }
+        }
+    }
+
     private fun checkAuthenticationStatus(): Map<String, Any>
     {
-        val authRef = _sessionManager.get("authRef")?.let {
+        val authRef = _sessionManager.get(SESSION_AUTH_REF)?.let {
             _json.toJson(Collections.singletonMap("authRef", it.value)).toByteArray()
         }
                 ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,

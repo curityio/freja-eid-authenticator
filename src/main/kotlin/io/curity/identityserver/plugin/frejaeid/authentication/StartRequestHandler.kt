@@ -16,6 +16,7 @@
 
 package io.curity.identityserver.plugin.frejaeid.authentication
 
+import io.curity.identityserver.plugin.frejaeid.authentication.WaitRequestHandler.Companion.SESSION_AUTH_REF
 import io.curity.identityserver.plugin.frejaeid.config.AttributesToReturn
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
 import io.curity.identityserver.plugin.frejaeid.config.RegistrationLevel
@@ -31,7 +32,6 @@ import se.curity.identityserver.sdk.http.HttpRequest
 import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
 import se.curity.identityserver.sdk.http.RedirectStatusCode
-import se.curity.identityserver.sdk.service.ExceptionFactory
 import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
@@ -122,7 +122,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
         if (authRef != null)
         {
-            config.sessionManager.put(Attribute.of("authRef", authRef))
+            config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
 
             throw _exceptionFactory.redirectException(getWaitHandlerUrl(),
                     RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)

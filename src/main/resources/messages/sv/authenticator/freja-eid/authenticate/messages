@@ -30,6 +30,8 @@ view.submit=Nästa
 wait.view.authTimeout=Inloggningsförfrågan tog för lång tid att utföra
 wait.view.description=Öppna Freja eID-app för att slutföra inloggnignen
 wait.view.title=Väntar på Freja eID
+wait.back=Tillbaka
+wait.cancel=Avbryt
 
 validation.error.phone.invalid=Telefonnummret du angett är ogiltigt
 validation.error.phone.required=Du måste ange ditt telefonnummer

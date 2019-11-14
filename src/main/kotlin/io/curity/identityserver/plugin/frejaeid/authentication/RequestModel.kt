@@ -68,4 +68,5 @@ class PhoneRequestModel(request: Request) : Post()
 class WaitModel(request: Request) : Post()
 {
     val moveOn: Boolean = "true" == request.getFormParameterValueOrError("moveOn")
+    val cancel: Boolean = "true" == request.getFormParameterValueOrError("cancel")
 }

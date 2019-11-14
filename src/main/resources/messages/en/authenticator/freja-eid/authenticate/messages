@@ -30,6 +30,8 @@ view.submit=Next
 wait.view.authTimeout=Authentication did not take place within the allowable time limit.
 wait.view.description=Please open Freja eID mobile app and complete the authentication
 wait.view.title=Waiting for Freja eID
+wait.back=Back
+wait.cancel=Cancel
 
 validation.error.phone.invalid=The phone number you have entered is invalid
 validation.error.phone.required=You have to enter your phone number

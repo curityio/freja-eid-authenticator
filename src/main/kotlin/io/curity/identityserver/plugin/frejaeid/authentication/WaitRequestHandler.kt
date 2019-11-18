@@ -294,9 +294,8 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
     {
         val authRef = _sessionManager.get(SESSION_AUTH_REF)?.let {
             _json.toJson(Collections.singletonMap("authRef", it.value)).toByteArray()
-        }
-                ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
-                        "authRef cannot be null")
+        } ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
+                "authRef cannot be null")
         _sessionManager.remove(SESSION_AUTH_REF)
         val authResultRequest = "cancelAuthRequest=${Base64.getEncoder().encodeToString(authRef)}"
         val requestBody = _relyingPartyId?.let { "$authResultRequest&relyingPartyId=$it" } ?: authResultRequest

@@ -32,7 +32,6 @@ import se.curity.identityserver.sdk.http.HttpRequest
 import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
 import se.curity.identityserver.sdk.http.RedirectStatusCode
-import se.curity.identityserver.sdk.service.Json
 import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
@@ -58,6 +57,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     private val _userPreferencesManager = config.userPreferencesManager
     private val _httpClient = config.httpClient
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
+    private val _emailAddressAttributeToReturn = Collections.singletonList(mapOf("attribute" to AttributesToReturn.EMAIL_ADDRESS))
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {
@@ -196,11 +196,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
         if (_minRegistrationLevel == RegistrationLevel.BASIC && _attributesToReturn.contains(AttributesToReturn.EMAIL_ADDRESS))
         {
-            dataMap["attributesToReturn"] = Collections.singletonList(mapOf("attribute" to AttributesToReturn.EMAIL_ADDRESS))
+            dataMap["attributesToReturn"] = _emailAddressAttributeToReturn
         }
         else if (_attributesToReturn.isNotEmpty() && _minRegistrationLevel != RegistrationLevel.BASIC)
         {
-            dataMap["attributesToReturn"] = _attributesToReturn.map { mapOf("attribute" to it)}
+            dataMap["attributesToReturn"] = _attributesToReturn.map { mapOf("attribute" to it) }
         }
 
         return dataMap

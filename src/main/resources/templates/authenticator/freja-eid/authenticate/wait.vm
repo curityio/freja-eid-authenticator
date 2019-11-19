@@ -35,7 +35,7 @@
     <div class="center p2 loader">
         #parse("fragments/spinner")
     </div>
-    <form  name="cancel" id="cancel" action="$_action" method="post">
+    <form  name="cancel" id="cancel" class="manuallink display-none" action="$_action" method="post">
         <input type="hidden" name="cancel" value="true"/>
         <button type="submit" class="button button-fullwidth button-danger-outline" >#message("authenticator.freja-eid.authenticate.wait.cancel")</button>
     </form>
@@ -43,6 +43,11 @@
     <script type="text/javascript" $!nonceAttr>
         jQuery(document).ready(function () {
             document.forms["cancel"].onsubmit =se.curity.authenticator.polling.start();
+
+            // Wait 3 seconds, then show cancel
+            setTimeout(function () {
+                jQuery(".manuallink").removeClass("display-none");
+            }, 3000);
         });
     </script>
     #end

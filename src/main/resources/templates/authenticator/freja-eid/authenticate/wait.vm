@@ -27,7 +27,7 @@
 </div>
 
 
-<form id="pollingForm" action="$_action" method="post">
+<form id="pollingDone" action="$_action" method="post">
     <input type="hidden" name="moveOn" value="true"/>
 </form>
 
@@ -35,11 +35,16 @@
     <div class="center p2 loader">
         #parse("fragments/spinner")
     </div>
-    <form id="cancelForm" action="$_action" method="post">
+    <form  name="cancel" id="cancel" action="$_action" method="post">
         <input type="hidden" name="cancel" value="true"/>
         <button type="submit" class="button button-fullwidth button-danger-outline" >#message("authenticator.freja-eid.authenticate.wait.cancel")</button>
     </form>
-        #parse("fragments/poller")
+        #parse("fragments/generic-poller")
+    <script type="text/javascript" $!nonceAttr>
+        jQuery(document).ready(function () {
+            document.forms["cancel"].onsubmit =se.curity.authenticator.polling.start();
+        });
+    </script>
     #end
 
 <div class="center py2 login-actions">

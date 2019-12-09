@@ -79,7 +79,8 @@ enum class AttributesToReturn
     DATE_OF_BIRTH,
     SSN,
     CUSTOM_IDENTIFIER,
-    RELYING_PARTY_USER_ID
+    RELYING_PARTY_USER_ID,
+    INTEGRATOR_SPECIFIC_USER_ID
 }
 
 enum class RegistrationLevel

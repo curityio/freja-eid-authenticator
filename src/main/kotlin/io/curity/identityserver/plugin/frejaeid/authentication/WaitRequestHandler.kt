@@ -60,6 +60,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         const val SESSION_RP_USER_ID = "freja-rp-user-id"
         const val SESSION_CUSTOM_IDENTIFIER = "freja-custom-identifier"
         const val SESSION_TIMESTAMP = "freja-timestamp"
+        const val SESSION_INTEGRATOR_SPECIFIC_USER_ID = "freja-integrator-specific-user-id"
     }
 
     private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
@@ -174,6 +175,13 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                     _sessionManager.remove(SESSION_RP_USER_ID)
                 }
 
+                val integratorSpecificUserIdAttribute = _sessionManager.get(SESSION_INTEGRATOR_SPECIFIC_USER_ID)
+                if (integratorSpecificUserIdAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("integratorSpecificUserId", integratorSpecificUserIdAttribute.value.toString()))
+                    _sessionManager.remove(SESSION_INTEGRATOR_SPECIFIC_USER_ID)
+                }
+
                 val timestamp = _sessionManager.get(SESSION_TIMESTAMP)
                 _sessionManager.remove(SESSION_TIMESTAMP)
 
@@ -266,6 +274,12 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                     if (requestedAttributesMap.containsKey("relyingPartyUserId"))
                     {
                         _sessionManager.put(Attribute.of(SESSION_RP_USER_ID, requestedAttributesMap["relyingPartyUserId"].toString()))
+                    }
+
+                    if (requestedAttributesMap.containsKey("integratorSpecificUserId"))
+                    {
+                        _sessionManager.put(Attribute.of(SESSION_INTEGRATOR_SPECIFIC_USER_ID,
+                                requestedAttributesMap["integratorSpecificUserId"].toString()))
                     }
 
                     if (requestedAttributesMap.containsKey("customIdentifier"))

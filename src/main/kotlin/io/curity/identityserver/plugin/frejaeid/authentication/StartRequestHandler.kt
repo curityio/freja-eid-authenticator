@@ -40,9 +40,9 @@ import java.net.MalformedURLException
 import java.net.URI
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.util.Base64
-import java.util.Collections
-import java.util.Optional
+import java.util.*
+import kotlin.collections.HashMap
+import kotlin.collections.set
 
 class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                           private val authenticatedState: AuthenticatedState)
@@ -57,7 +57,6 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     private val _userPreferencesManager = config.userPreferencesManager
     private val _httpClient = config.httpClient
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
-    private val _emailAddressAttributeToReturn = Collections.singletonList(mapOf("attribute" to AttributesToReturn.EMAIL_ADDRESS))
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {
@@ -194,9 +193,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
             dataMap["userInfo"] = username
         }
 
-        if (_minRegistrationLevel == RegistrationLevel.BASIC && _attributesToReturn.contains(AttributesToReturn.EMAIL_ADDRESS))
+        if (_minRegistrationLevel == RegistrationLevel.BASIC)
         {
-            dataMap["attributesToReturn"] = _emailAddressAttributeToReturn
+            dataMap["attributesToReturn"] = _attributesToReturn.filter { attr ->
+                AttributesToReturn.EMAIL_ADDRESS == attr || AttributesToReturn.INTEGRATOR_SPECIFIC_USER_ID == attr
+            }.map { mapOf("attribute" to it) }
         }
         else if (_attributesToReturn.isNotEmpty() && _minRegistrationLevel != RegistrationLevel.BASIC)
         {

@@ -37,7 +37,7 @@
     #end
 <div class="mt3 px3 lg-px4" id="user-error" $!isHidden>
     <div class="alert alert-danger px4">
-        $!error<br>
+        #message("authenticator.freja-eid.authenticate.${error}")<br>
     </div>
 </div>
     <form id="usernameForm" method="post" action="$_authUrl">

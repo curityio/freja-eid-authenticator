@@ -193,12 +193,12 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                                         ContextAttributes.of(Attributes.of(
                                                 Attribute.of("timestamp", timestamp.value.toString()))))))
             }
-            else if (statusValue == "REJECTED" || statusValue == "EXPIRED" || statusValue == "CANCELED")
+            else if (statusValue == "REJECTED" || statusValue == "EXPIRED" || statusValue == "CANCELED" || statusValue == "RP_CANCELED")
             {
                 val dataMap: HashMap<String, Any> = HashMap(2)
 
                 dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
-                dataMap["error"] = "The authorization request has been ${status.value.toString().toLowerCase()}."
+                dataMap["error"] = "error.request.${status.value.toString().toLowerCase()}"
 
                 // GET request
                 if (config.userPreferencesManager.username != null)

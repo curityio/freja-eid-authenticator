@@ -40,3 +40,8 @@ validation.error.email.required=You have to enter your email
 validation.error.ssn.invalid=The personal number you have entered is invalid
 validation.error.ssn.required=You have to enter your personal number
 too.many.attempts=There were too many attempts to authenticate recently, please try again in a few minutes
+
+error.request.rejected=The authorization request has been rejected
+error.request.expired=The authorization request has been expired
+error.request.canceled=The authorization request has been canceled
+error.request.rp_canceled=The authorization request has been canceled

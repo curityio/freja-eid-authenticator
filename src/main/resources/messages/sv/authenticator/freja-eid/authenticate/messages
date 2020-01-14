@@ -41,7 +41,7 @@ validation.error.ssn.invalid=Personnummret du angett är ogiltigt
 validation.error.ssn.required=Du måste ange ditt personnummer
 too.many.attempts=För många försök. Du måste vänta ett tag innan du får försöka igen
 
-error.request.rejected=Autorisations begäran har avvisats
-error.request.expired=Autorisations begäran har slut ut
-error.request.canceled=Autorisations begäran har avbrutits
-error.request.rp_canceled=Autorisations begäran har avbrutits
+error.request.rejected=Auktorisationsbegäran har avslagits
+error.request.expired=Auktorisationsbegäran har gått ut
+error.request.canceled=Auktorisationsbegäran har avbrutits
+error.request.rp_canceled=Auktorisationsbegäran har avbrutits

@@ -1,7 +1,11 @@
 Freja eID Authenticator Plugin
 ==============================
-.. image:: https://travis-ci.org/curityio/freja-eid-authenticator.svg?branch=master
-    :target: https://travis-ci.org/curityio/freja-eid-authenticator
+
+.. image:: https://curity.io/assets/images/badges/freja-eid-authenticator-quality.svg
+       :target: https://curity.io/resources/code-examples/status/
+       
+.. image:: https://curity.io/assets/images/badges/freja-eid-authenticator-availability.svg
+       :target: https://curity.io/resources/code-examples/status/
 
 This project provides an opens source Freja eID Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their Freja eID credentials.
 

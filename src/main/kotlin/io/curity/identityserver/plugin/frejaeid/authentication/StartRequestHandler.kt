@@ -21,6 +21,8 @@ import io.curity.identityserver.plugin.frejaeid.config.AttributesToReturn
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
 import io.curity.identityserver.plugin.frejaeid.config.RegistrationLevel
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
+import net.glxn.qrgen.QRCode
+import net.glxn.qrgen.image.ImageType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import se.curity.identityserver.sdk.attribute.Attribute
@@ -39,6 +41,7 @@ import se.curity.identityserver.sdk.web.ResponseModel.templateResponseModel
 import java.net.MalformedURLException
 import java.net.URI
 import java.net.URL
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.collections.HashMap
@@ -57,6 +60,13 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     private val _userPreferencesManager = config.userPreferencesManager
     private val _httpClient = config.httpClient
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
+
+    companion object
+    {
+        const val DATA_IMAGE_PNG_BASE_64 = "data:image/png;base64,"
+        const val QR_CODE = "_qrCode"
+    }
+
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {
@@ -84,13 +94,25 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     }
 
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
-            if (authenticatedState.isAuthenticated)
+
+            if (config.qrCodeEnabled())
             {
-                startAuthentication(requestModel)
+                //if qrcode is enabled, throw to go to wait handler
+                // and skip the form entry for email, ssn or phone
+                throw _exceptionFactory.redirectException(getWaitHandlerUrl(),
+                        RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
             }
             else
             {
-                Optional.empty()
+
+                if (authenticatedState.isAuthenticated)
+                {
+                    startAuthentication(requestModel)
+                }
+                else
+                {
+                    Optional.empty()
+                }
             }
 
     override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
@@ -116,9 +138,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
         _userPreferencesManager.saveUsername(username)
 
-        val postData = createPostData(_userInfoType, username)
+        val postData = createPostData(_userInfoType, username).toMutableMap()
         val responseData = getAuthTransaction(postData)
         val authRef = responseData["authRef"]?.toString()
+
+        config.sessionManager.put(Attribute.of(QR_CODE, generateQRCodeAsDataUri(authRef.toString())))
 
         if (authRef != null)
         {
@@ -177,10 +201,11 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
     private fun createPostData(userInfoType: UserInfoType, username: String): Map<String, Any>
     {
-        val dataMap = HashMap<String, Any>(3)
+        val dataMap = HashMap<String, Any>(4)
 
         dataMap["userInfoType"] = userInfoType.toString()
         dataMap["minRegistrationLevel"] = _minRegistrationLevel.toString()
+
         if (userInfoType.equals(UserInfoType.SSN))
         {
             val userInfo = HashMap<String, Any>(2)
@@ -229,5 +254,22 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     else
     {
         config.webServiceClientFactory.create(URI.create("https://$host"))
+    }
+
+    private fun generateQRCodeAsDataUri(value: String): String
+    {
+        val transactionUri = URLEncoder
+                .encode("frejaeid://bindUserToTransaction?transactionReference=$value", "utf-8")
+        val builder = StringBuilder(DATA_IMAGE_PNG_BASE_64)
+        val stream = QRCode.from(transactionUri)
+                .to(ImageType.PNG)
+                .withSize(250, 250)
+                .stream()
+
+        val base64EncodedData = Base64.getEncoder().encodeToString(stream.toByteArray())
+
+        builder.append(base64EncodedData)
+
+        return builder.toString()
     }
 }

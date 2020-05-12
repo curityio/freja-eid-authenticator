@@ -34,6 +34,13 @@
     #if(!$!_errors)
     <div class="center p2 loader">
         #parse("fragments/spinner")
+        <h1 id="qrCode" class="center header">
+            #message("${_templatePrefix}.view.scan-qrcode")
+            <span>
+                    <img src="$_qrCode" class="mx-auto block" title="$!_downloadUri"
+                         alt="$!_downloadUri">
+            </span>
+        </h1>
     </div>
     <form  name="cancel" id="cancel" class="manuallink display-none" action="$_action" method="post">
         <input type="hidden" name="cancel" value="true"/>

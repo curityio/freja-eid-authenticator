@@ -18,6 +18,8 @@ package io.curity.identityserver.plugin.frejaeid.authentication
 
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
+import net.glxn.qrgen.QRCode
+import net.glxn.qrgen.image.ImageType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import se.curity.identityserver.sdk.attribute.Attribute
@@ -61,6 +63,9 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         const val SESSION_CUSTOM_IDENTIFIER = "freja-custom-identifier"
         const val SESSION_TIMESTAMP = "freja-timestamp"
         const val SESSION_INTEGRATOR_SPECIFIC_USER_ID = "freja-integrator-specific-user-id"
+        const val QR_CODE = "_qrCode"
+        const val CSP_OVERRIDE_IMG_SRC = "_cspImgsrc"
+        const val CSP_OVERRIDE_IMG_SRC_DATA = "img-src 'self' data:;"
     }
 
     private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
@@ -70,12 +75,21 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
 
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> = Optional.empty()
+    //if config enables qr code render it, first calling to get the authRef
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {
+        val qrCode = config.sessionManager.get(QR_CODE)
         if (request.isGetRequest)
         {
-            response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
+            var viewData = emptyMap<String, String>()
+            if (config.qrCodeEnabled())
+            {
+                viewData = mapOf(QR_CODE to qrCode.value.toString(), CSP_OVERRIDE_IMG_SRC to CSP_OVERRIDE_IMG_SRC_DATA)
+            }
+
+            response.setResponseModel(ResponseModel.templateResponseModel(
+                    viewData, "authenticate/wait"),
                     Response.ResponseModelScope.NOT_FAILURE)
         }
 

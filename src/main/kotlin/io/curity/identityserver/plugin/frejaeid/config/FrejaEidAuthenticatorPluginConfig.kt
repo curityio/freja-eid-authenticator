@@ -17,7 +17,9 @@
 package io.curity.identityserver.plugin.frejaeid.config;
 
 import se.curity.identityserver.sdk.config.Configuration
+import se.curity.identityserver.sdk.config.annotation.DefaultBoolean
 import se.curity.identityserver.sdk.config.annotation.Description
+import se.curity.identityserver.sdk.config.annotation.Name
 import se.curity.identityserver.sdk.service.*
 import se.curity.identityserver.sdk.service.authentication.AuthenticatorInformationProvider
 import java.util.*
@@ -38,6 +40,11 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration
 
     @get:Description("The relying party ID")
     val relyingPartyId : Optional<String>
+
+    @Name("qrCodeEnabled")
+    @Description("QRCode can be used to authenticate")
+    @DefaultBoolean(true)
+    fun qrCodeEnabled(): Boolean
     
     val sessionManager: SessionManager
     

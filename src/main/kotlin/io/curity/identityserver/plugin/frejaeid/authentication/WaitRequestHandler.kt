@@ -73,19 +73,31 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
     private val _json = config.json
     private val _sessionManager = config.sessionManager
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
+    private val _requestLogicHelper = RequestLogicHelper(config)
 
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> = Optional.empty()
     //if config enables qr code render it, first calling to get the authRef
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {
-        val qrCode = config.sessionManager.get(QR_CODE)
         if (request.isGetRequest)
         {
+            var qrCode = ""
+            if (config.qrCodeEnabled())
+            {
+                //the following data are proposed from freja documentation on QRCode generation
+                val postData = mutableMapOf("userInfoType" to "INFERRED", "userInfo" to "N/A")
+                val responseData = _requestLogicHelper.getAuthTransaction(postData)
+                val authRef = responseData["authRef"]?.toString()
+                config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
+
+                qrCode = _requestLogicHelper.generateQRCodeAsDataUri(authRef.toString())
+            }
+
             var viewData = emptyMap<String, String>()
             if (config.qrCodeEnabled())
             {
-                viewData = mapOf(QR_CODE to qrCode.value.toString(), CSP_OVERRIDE_IMG_SRC to CSP_OVERRIDE_IMG_SRC_DATA)
+                viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to CSP_OVERRIDE_IMG_SRC_DATA)
             }
 
             response.setResponseModel(ResponseModel.templateResponseModel(

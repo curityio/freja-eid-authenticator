@@ -41,9 +41,9 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration
     @get:Description("The relying party ID")
     val relyingPartyId : Optional<String>
 
-    @Name("qrCodeEnabled")
+    @Name("qr-code-enabled")
     @Description("QRCode can be used to authenticate")
-    @DefaultBoolean(true)
+    @DefaultBoolean(false)
     fun qrCodeEnabled(): Boolean
     
     val sessionManager: SessionManager

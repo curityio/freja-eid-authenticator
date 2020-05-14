@@ -1,11 +1,6 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
-import io.curity.identityserver.plugin.frejaeid.config.AttributesToReturn
-import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
-import io.curity.identityserver.plugin.frejaeid.config.RegistrationLevel
-import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
-import net.glxn.qrgen.QRCode
-import net.glxn.qrgen.image.ImageType
+import io.curity.identityserver.plugin.frejaeid.config.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import se.curity.identityserver.sdk.errors.ErrorCode
@@ -15,7 +10,9 @@ import se.curity.identityserver.sdk.service.WebServiceClient
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.util.Base64
+import java.util.*
+import kotlin.collections.HashMap
+import kotlin.collections.set
 
 class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
 {
@@ -26,6 +23,13 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
     private val _minRegistrationLevel = config.minimumRegistrationLevel
     private val _attributesToReturn = config.attributesToReturn
     private val _logger: Logger = LoggerFactory.getLogger(RequestLogicHelper::class.java)
+
+    companion object
+    {
+        const val QR_CODE_GENERATE_URL_TEST = "https://resources.test.frejaeid.com"
+        const val QR_CODE_GENERATE_URL_PROD = "https://resources.prod.frejaeid.com"
+        const val QR_CODE_GENERATE_PATH = "/qrcode/generate?qrcodedata="
+    }
 
     fun createPostData(userInfoType: UserInfoType, username: String): Map<String, Any>
     {
@@ -92,7 +96,6 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
         return _json.fromJson(httpResponse.body(HttpResponse.asString()))
     }
 
-
     private fun buildJsonAuthRequest(postData: Map<String, Any>): String
     {
         return "{" + postData.map {
@@ -105,7 +108,6 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
         }.joinToString() + "}"
     }
 
-
     private fun getWebServiceClient(host: String): WebServiceClient = if (_httpClient.isPresent)
     {
         config.webServiceClientFactory.create(_httpClient.get()).withHost(host)
@@ -115,20 +117,18 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
         config.webServiceClientFactory.create(URI.create("https://$host"))
     }
 
-    fun generateQRCodeAsDataUri(value: String): String
+    fun generateQRCodeLink(appLink: String, environment: PredefinedEnvironment): String
     {
-        val transactionUri = URLEncoder
-                .encode("frejaeid://bindUserToTransaction?transactionReference=$value", "utf-8")
-        val builder = StringBuilder(StartRequestHandler.DATA_IMAGE_PNG_BASE_64)
-        val stream = QRCode.from(transactionUri)
-                .to(ImageType.PNG)
-                .withSize(250, 250)
-                .stream()
-
-        val base64EncodedData = Base64.getEncoder().encodeToString(stream.toByteArray())
-
-        builder.append(base64EncodedData)
+        val baseUrl = if (environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
+        val builder = StringBuilder(baseUrl)
+        builder.append(QR_CODE_GENERATE_PATH)
+        builder.append(URLEncoder.encode(appLink, "utf-8"))
 
         return builder.toString()
+    }
+
+    fun generateAppLink(authRef: String): String
+    {
+        return "frejaeid://bindUserToTransaction?transactionReference=$authRef"
     }
 }

@@ -17,32 +17,19 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
 import io.curity.identityserver.plugin.frejaeid.authentication.WaitRequestHandler.Companion.SESSION_AUTH_REF
-import io.curity.identityserver.plugin.frejaeid.config.AttributesToReturn
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
-import io.curity.identityserver.plugin.frejaeid.config.RegistrationLevel
-import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
-import net.glxn.qrgen.QRCode
-import net.glxn.qrgen.image.ImageType
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import se.curity.identityserver.sdk.attribute.Attribute
 import se.curity.identityserver.sdk.authentication.AuthenticatedState
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.errors.ErrorCode
-import se.curity.identityserver.sdk.http.HttpRequest
-import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
 import se.curity.identityserver.sdk.http.RedirectStatusCode
-import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel.templateResponseModel
 import java.net.MalformedURLException
-import java.net.URI
 import java.net.URL
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.set
@@ -55,13 +42,6 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     private val _exceptionFactory = config.exceptionFactory
     private val _userPreferencesManager = config.userPreferencesManager
     private val _requestLogicHelper = RequestLogicHelper(config)
-
-    companion object
-    {
-        const val DATA_IMAGE_PNG_BASE_64 = "data:image/png;base64,"
-        const val QR_CODE = "_qrCode"
-    }
-
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {

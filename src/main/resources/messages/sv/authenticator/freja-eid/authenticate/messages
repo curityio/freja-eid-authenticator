@@ -27,12 +27,14 @@ view.phone.description=Var god ange ditt telefonnummer
 view.phone.placeholder=+467XXXXXXXX
 view.submit=Nästa
 view.scan-qrcode=Scanna QR Kod
+view.this-device=Starta Freja eID app på den här enheten
 
 wait.view.authTimeout=Inloggningsförfrågan tog för lång tid att utföra
 wait.view.description=Öppna Freja eID-app för att slutföra inloggnignen
 wait.view.title=Väntar på Freja eID
 wait.back=Tillbaka
 wait.cancel=Avbryt
+error.restart=Omstart
 
 validation.error.phone.invalid=Telefonnummret du angett är ogiltigt
 validation.error.phone.required=Du måste ange ditt telefonnummer

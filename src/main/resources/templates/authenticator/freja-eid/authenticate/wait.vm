@@ -19,12 +19,24 @@
 #set ( $_maxWaitTime = 120 )
 
 #define ($_body)
-<div class="sm-col-12 center">
-    <h2> #message("authenticator.freja-eid.authenticate.wait.view.title")</h2>
-    <p>
-        #message("authenticator.freja-eid.authenticate.wait.view.description")
-    </p>
-</div>
+    #if($!_qrCode)
+    <div class="sm-col-12 center px3">
+        <h2>#message("${_templatePrefix}.view.scan-qrcode")</h2>
+        <span>
+            <img src="$_qrCode" class="mx-auto block" title="$!_downloadUri"
+                 alt="$!_downloadUri">
+            </span>
+        <a class="button button-fullwidth button-primary center mt2"
+           href="$!_thisDeviceLink">#message("${_templatePrefix}.view.this-device")</a>
+    </div>
+    #else
+    <div class="sm-col-12 center">
+        <h2> #message("authenticator.freja-eid.authenticate.wait.view.title")</h2>
+        <p>
+            #message("authenticator.freja-eid.authenticate.wait.view.description")
+        </p>
+    </div>
+    #end
 
 
 <form id="pollingDone" action="$_action" method="post">
@@ -34,15 +46,6 @@
     #if(!$!_errors)
     <div class="center p2 loader">
         #parse("fragments/spinner")
-        #if($!_qrCode)
-            <h1 id="qrCode" class="center header">
-                #message("${_templatePrefix}.view.scan-qrcode")
-                <span>
-                    <img src="$_qrCode" class="mx-auto block" title="$!_downloadUri"
-                         alt="$!_downloadUri">
-            </span>
-            </h1>
-        #end
 
     </div>
     <form name="cancel" id="cancel" class="manuallink display-none" action="$_action" method="post">
@@ -62,11 +65,12 @@
         });
     </script>
     #end
-
-<div class="center py2 login-actions">
-    <a href="$_authUrl" role="button">
-        <i class="icon ion-refresh inlineicon"></i>#message("authenticator.freja-eid.authenticate.wait.back")</a>
-</div>
+    #if(!$!_qrCode)
+    <div class="center py2 login-actions">
+        <a href="$_authUrl" role="button">
+            <i class="icon ion-refresh inlineicon"></i>#message("authenticator.freja-eid.authenticate.wait.back")</a>
+    </div>
+    #end
 #end
 
 #parse("layouts/default")

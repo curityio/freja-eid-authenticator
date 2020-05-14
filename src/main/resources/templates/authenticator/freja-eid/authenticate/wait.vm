@@ -34,22 +34,26 @@
     #if(!$!_errors)
     <div class="center p2 loader">
         #parse("fragments/spinner")
-        <h1 id="qrCode" class="center header">
-            #message("${_templatePrefix}.view.scan-qrcode")
-            <span>
+        #if($!_qrCode)
+            <h1 id="qrCode" class="center header">
+                #message("${_templatePrefix}.view.scan-qrcode")
+                <span>
                     <img src="$_qrCode" class="mx-auto block" title="$!_downloadUri"
                          alt="$!_downloadUri">
             </span>
-        </h1>
+            </h1>
+        #end
+
     </div>
-    <form  name="cancel" id="cancel" class="manuallink display-none" action="$_action" method="post">
+    <form name="cancel" id="cancel" class="manuallink display-none" action="$_action" method="post">
         <input type="hidden" name="cancel" value="true"/>
-        <button type="submit" class="button button-fullwidth button-danger-outline" >#message("authenticator.freja-eid.authenticate.wait.cancel")</button>
+        <button type="submit" class="button button-fullwidth button-danger-outline">#message(
+            "authenticator.freja-eid.authenticate.wait.cancel")</button>
     </form>
         #parse("fragments/generic-poller")
     <script type="text/javascript" $!nonceAttr>
         jQuery(document).ready(function () {
-            document.forms["cancel"].onsubmit =se.curity.authenticator.polling.start();
+            document.forms["cancel"].onsubmit = se.curity.authenticator.polling.start();
 
             // Wait 3 seconds, then show cancel
             setTimeout(function () {

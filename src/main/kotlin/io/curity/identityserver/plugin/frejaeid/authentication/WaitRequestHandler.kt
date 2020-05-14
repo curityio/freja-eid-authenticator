@@ -83,6 +83,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         if (request.isGetRequest)
         {
             var qrCode = ""
+            var viewData = emptyMap<String, String>()
             if (config.qrCodeEnabled())
             {
                 //the following data are proposed from freja documentation on QRCode generation
@@ -92,11 +93,6 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
 
                 qrCode = _requestLogicHelper.generateQRCodeAsDataUri(authRef.toString())
-            }
-
-            var viewData = emptyMap<String, String>()
-            if (config.qrCodeEnabled())
-            {
                 viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to CSP_OVERRIDE_IMG_SRC_DATA)
             }
 

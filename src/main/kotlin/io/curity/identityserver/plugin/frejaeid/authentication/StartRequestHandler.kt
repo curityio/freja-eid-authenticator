@@ -70,20 +70,21 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> =
 
-            if (config.qrCodeEnabled())
+            when
             {
-                //if qrcode is enabled, throw to go to wait handler
-                // and skip the form entry for email, ssn or phone
-                throw _exceptionFactory.redirectException(getWaitHandlerUrl(),
-                        RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
-            }
-            else
-            {
-                if (authenticatedState.isAuthenticated)
+                config.qrCodeEnabled() ->
                 {
+                    //if qrcode is enabled, throw to go to wait handler
+                    // and skip the form entry for email, ssn or phone
+                    throw _exceptionFactory.redirectException(getWaitHandlerUrl(),
+                            RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+                }
+                authenticatedState.isAuthenticated ->
+                {
+
                     startAuthentication(requestModel)
                 }
-                else
+                else ->
                 {
                     Optional.empty()
                 }

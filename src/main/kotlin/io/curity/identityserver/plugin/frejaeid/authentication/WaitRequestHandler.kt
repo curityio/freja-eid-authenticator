@@ -84,10 +84,11 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 val responseData = _requestLogicHelper.getAuthTransaction(postData)
                 val authRef = responseData["authRef"]?.toString()
                 config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
+                val baseUrl = if (config.environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
 
-                var cspOverride = "img-src 'self' " + if (config.environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
+                var cspOverride = "img-src 'self' $baseUrl;"
                 var appLink = _requestLogicHelper.generateAppLink(authRef.toString())
-                var qrCode = _requestLogicHelper.generateQRCodeLink(appLink, config.environment)
+                var qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink, config.environment)
                 viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to cspOverride, THIS_DEVICE_LINK to appLink)
             }
 
@@ -342,7 +343,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 .request()
                 .contentType("text/plain")
                 .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
-                .method("POST")
+                .post()
                 .response()
         val statusCode = httpResponse.statusCode()
 
@@ -370,7 +371,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 .request()
                 .contentType("text/plain")
                 .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
-                .method("POST")
+                .post()
                 .response()
         val statusCode = httpResponse.statusCode()
 

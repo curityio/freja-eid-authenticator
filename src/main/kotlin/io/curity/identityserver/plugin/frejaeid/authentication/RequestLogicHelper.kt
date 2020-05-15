@@ -1,3 +1,19 @@
+/*
+ *  Copyright 2020 Curity AB
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package io.curity.identityserver.plugin.frejaeid.authentication
 
 import io.curity.identityserver.plugin.frejaeid.config.*
@@ -73,7 +89,7 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
                 .request()
                 .contentType("text/plain")
                 .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
-                .method("POST")
+                .post()
                 .response()
         val statusCode = httpResponse.statusCode()
 
@@ -117,9 +133,8 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
         config.webServiceClientFactory.create(URI.create("https://$host"))
     }
 
-    fun generateQRCodeLink(appLink: String, environment: PredefinedEnvironment): String
+    fun generateQRCodeLink(baseUrl: String, appLink: String, environment: PredefinedEnvironment): String
     {
-        val baseUrl = if (environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
         val builder = StringBuilder(baseUrl)
         builder.append(QR_CODE_GENERATE_PATH)
         builder.append(URLEncoder.encode(appLink, "utf-8"))

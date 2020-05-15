@@ -14,27 +14,32 @@
  *  limitations under the License.
  */
 
-package io.curity.identityserver.plugin.frejaeid.config;
+package io.curity.identityserver.plugin.frejaeid.config
 
 import se.curity.identityserver.sdk.config.Configuration
 import se.curity.identityserver.sdk.config.annotation.DefaultBoolean
 import se.curity.identityserver.sdk.config.annotation.Description
 import se.curity.identityserver.sdk.config.annotation.Name
-import se.curity.identityserver.sdk.service.*
+import se.curity.identityserver.sdk.service.ExceptionFactory
+import se.curity.identityserver.sdk.service.HttpClient
+import se.curity.identityserver.sdk.service.SessionManager
+import se.curity.identityserver.sdk.service.UserPreferenceManager
+import se.curity.identityserver.sdk.service.WebServiceClientFactory
+import se.curity.identityserver.sdk.service.Json
 import se.curity.identityserver.sdk.service.authentication.AuthenticatorInformationProvider
-import java.util.*
+import java.util.Optional
 
 interface FrejaEidAuthenticatorPluginConfig : Configuration
 {
     @get:Description("The HTTP client with any proxy and TLS settings")
     val httpClient: Optional<HttpClient>
-    
+
     @get:Description("The environment to use for authentication")
     val environment: PredefinedEnvironment
 
     @get:Description("Minimum required registration level of the user")
     val minimumRegistrationLevel: RegistrationLevel
-    
+
     @get:Description("User Identifier Type")
     val userInfoType: UserInfoType
 
@@ -45,17 +50,17 @@ interface FrejaEidAuthenticatorPluginConfig : Configuration
     @Description("QRCode can be used to authenticate")
     @DefaultBoolean(false)
     fun qrCodeEnabled(): Boolean
-    
+
     val sessionManager: SessionManager
-    
+
     val exceptionFactory: ExceptionFactory
-    
+
     val userPreferencesManager: UserPreferenceManager
-    
+
     val webServiceClientFactory: WebServiceClientFactory
-    
+
     val json: Json
-    
+
     val authenticatorInformationProvider: AuthenticatorInformationProvider
 
     val attributesToReturn: List<AttributesToReturn>
@@ -65,10 +70,10 @@ enum class PredefinedEnvironment
 {
     @Description("Non-production environment for testing and verification")
     PRE_PRODUCTION,
-    
+
     @Description("The production environment should be use")
     PRODUCTION;
-    
+
     fun getHost(): String
     {
         return when (this)

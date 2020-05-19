@@ -26,12 +26,15 @@ view.phone.label=Phone Number
 view.phone.description=Please enter your phone number
 view.phone.placeholder=+467XXXXXXXX
 view.submit=Next
+view.scan-qrcode=Scan QR Code
+view.this-device=Start Freja eID app on this device
 
 wait.view.authTimeout=Authentication did not take place within the allowable time limit.
 wait.view.description=Please open Freja eID mobile app and complete the authentication
 wait.view.title=Waiting for Freja eID
 wait.back=Back
 wait.cancel=Cancel
+error.restart=Restart
 
 validation.error.phone.invalid=The phone number you have entered is invalid
 validation.error.phone.required=You have to enter your phone number

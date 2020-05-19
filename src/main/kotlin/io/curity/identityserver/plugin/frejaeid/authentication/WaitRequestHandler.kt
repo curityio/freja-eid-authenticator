@@ -16,15 +16,14 @@
 
 package io.curity.identityserver.plugin.frejaeid.authentication
 
+import io.curity.identityserver.plugin.frejaeid.authentication.RequestLogicHelper.Companion.QR_CODE_GENERATE_URL_PROD
+import io.curity.identityserver.plugin.frejaeid.authentication.RequestLogicHelper.Companion.QR_CODE_GENERATE_URL_TEST
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
+import io.curity.identityserver.plugin.frejaeid.config.PredefinedEnvironment
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import se.curity.identityserver.sdk.attribute.Attribute
-import se.curity.identityserver.sdk.attribute.Attributes
-import se.curity.identityserver.sdk.attribute.AuthenticationAttributes
-import se.curity.identityserver.sdk.attribute.ContextAttributes
-import se.curity.identityserver.sdk.attribute.SubjectAttributes
+import se.curity.identityserver.sdk.attribute.*
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.errors.ErrorCode
@@ -38,12 +37,9 @@ import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.util.ArrayList
-import java.util.Base64
-import java.util.Collections
-import java.util.Objects
-import java.util.Optional
-
+import java.util.*
+import kotlin.collections.HashMap
+import kotlin.collections.set
 
 class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) : AuthenticatorRequestHandler<RequestModel>
 {
@@ -61,6 +57,9 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         const val SESSION_CUSTOM_IDENTIFIER = "freja-custom-identifier"
         const val SESSION_TIMESTAMP = "freja-timestamp"
         const val SESSION_INTEGRATOR_SPECIFIC_USER_ID = "freja-integrator-specific-user-id"
+        const val QR_CODE = "_qrCode"
+        const val CSP_OVERRIDE_IMG_SRC = "_cspImgsrc"
+        const val THIS_DEVICE_LINK = "_thisDeviceLink"
     }
 
     private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
@@ -68,14 +67,33 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
     private val _json = config.json
     private val _sessionManager = config.sessionManager
     private val _relyingPartyId = config.relyingPartyId.orElse(null)
+    private val _requestLogicHelper = RequestLogicHelper(config)
 
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> = Optional.empty()
+    //if config enables qr code render it, first calling to get the authRef
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {
         if (request.isGetRequest)
         {
-            response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(), "authenticate/wait"),
+            var viewData = emptyMap<String, String>()
+            if (config.qrCodeEnabled())
+            {
+                //the following data are proposed from freja documentation on QRCode generation
+                val postData = mutableMapOf("userInfoType" to "INFERRED", "userInfo" to "N/A")
+                val responseData = _requestLogicHelper.getAuthTransaction(postData)
+                val authRef = responseData["authRef"]?.toString()
+                config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
+                val baseUrl = if (config.environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
+
+                var cspOverride = "img-src 'self' $baseUrl;"
+                var appLink = _requestLogicHelper.generateAppLink(authRef.toString())
+                var qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink, config.environment)
+                viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to cspOverride, THIS_DEVICE_LINK to appLink)
+            }
+
+            response.setResponseModel(ResponseModel.templateResponseModel(
+                    viewData, "authenticate/wait"),
                     Response.ResponseModelScope.NOT_FAILURE)
         }
 
@@ -84,7 +102,6 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 "authenticate/wait"), HttpStatus.BAD_REQUEST)
         return RequestModel(request, null)
     }
-
 
     override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
     {
@@ -103,8 +120,16 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         if (cancel)
         {
             cancelAuthentication()
-            throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri,
-                    RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+            if (config.qrCodeEnabled())
+            {
+                throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.authenticationBaseUri,
+                        RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+            }
+            else
+            {
+                throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri,
+                        RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+            }
         }
         else if (moveOn)
         {
@@ -214,7 +239,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 }
 
                 response.setResponseModel(ResponseModel.templateResponseModel(dataMap,
-                        "authenticate/get"),
+                        "authenticate/error"),
                         Response.ResponseModelScope.NOT_FAILURE)
             }
         }
@@ -318,7 +343,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 .request()
                 .contentType("text/plain")
                 .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
-                .method("POST")
+                .post()
                 .response()
         val statusCode = httpResponse.statusCode()
 
@@ -346,7 +371,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 .request()
                 .contentType("text/plain")
                 .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
-                .method("POST")
+                .post()
                 .response()
         val statusCode = httpResponse.statusCode()
 

@@ -45,6 +45,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 {
     companion object
     {
+        const val SESSION_USERNAME = "freja-username"
         const val SESSION_STATUS = "freja-status"
         const val SESSION_NAME = "freja-name"
         const val SESSION_AUTH_REF = "freja-authref"
@@ -86,9 +87,9 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
                 val baseUrl = if (config.environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
 
-                var cspOverride = "img-src 'self' $baseUrl;"
-                var appLink = _requestLogicHelper.generateAppLink(authRef.toString())
-                var qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink, config.environment)
+                val cspOverride = "img-src 'self' $baseUrl;"
+                val appLink = _requestLogicHelper.generateAppLink(authRef.toString())
+                val qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink, config.environment)
                 viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to cspOverride, THIS_DEVICE_LINK to appLink)
             }
 
@@ -210,10 +211,13 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 val timestamp = _sessionManager.get(SESSION_TIMESTAMP)
                 _sessionManager.remove(SESSION_TIMESTAMP)
 
+                val subject = _sessionManager.get(SESSION_USERNAME)
+                _sessionManager.remove(SESSION_USERNAME)
+
                 return Optional.of(
                         AuthenticationResult(
                                 AuthenticationAttributes.of(
-                                        SubjectAttributes.of(config.userPreferencesManager.username,
+                                        SubjectAttributes.of(subject.value.toString(),
                                                 Attributes.of(subjectAttributes)),
                                         ContextAttributes.of(Attributes.of(
                                                 Attribute.of("timestamp", timestamp.value.toString()))))))

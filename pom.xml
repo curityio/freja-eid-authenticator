@@ -13,7 +13,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.curityVersion>4.4.0</project.curityVersion>
+        <project.curityVersion>5.2.0</project.curityVersion>
         <project.slf4jVersion>1.7.25</project.slf4jVersion>
         <kotlin.version>1.3.61</kotlin.version>
     </properties>
@@ -68,7 +68,7 @@
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-validator</artifactId>
-            <version>5.1.3.Final</version>
+            <version>5.2.5.Final</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

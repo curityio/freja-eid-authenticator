@@ -81,7 +81,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             if (config.qrCodeEnabled())
             {
                 //the following data are proposed from freja documentation on QRCode generation
-                val postData = mutableMapOf("userInfoType" to "INFERRED", "userInfo" to "N/A")
+                val postData = _requestLogicHelper.createQRCodePostData()
                 val responseData = _requestLogicHelper.getAuthTransaction(postData)
                 val authRef = responseData["authRef"]?.toString()
                 config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))

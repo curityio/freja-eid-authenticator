@@ -66,18 +66,36 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
             dataMap["userInfo"] = username
         }
 
+        dataMap["attributesToReturn"] = createAttributesToReturn()
+
+        return dataMap
+    }
+
+    fun createQRCodePostData(): Map<String, Any>
+    {
+        val dataMap = HashMap<String, Any>(4)
+
+        dataMap["userInfoType"] = "INFERRED"
+        dataMap["minRegistrationLevel"] = _minRegistrationLevel.toString()
+        dataMap["userInfo"] = "N/A"
+        dataMap["attributesToReturn"] = createAttributesToReturn()
+
+        return dataMap
+    }
+
+    private fun createAttributesToReturn(): List<Map<String, AttributesToReturn>>
+    {
         if (_minRegistrationLevel == RegistrationLevel.BASIC)
         {
-            dataMap["attributesToReturn"] = _attributesToReturn.filter { attr ->
+            return _attributesToReturn.filter { attr ->
                 AttributesToReturn.EMAIL_ADDRESS == attr || AttributesToReturn.INTEGRATOR_SPECIFIC_USER_ID == attr
             }.map { mapOf("attribute" to it) }
         }
         else if (_attributesToReturn.isNotEmpty() && _minRegistrationLevel != RegistrationLevel.BASIC)
         {
-            dataMap["attributesToReturn"] = _attributesToReturn.map { mapOf("attribute" to it) }
+            return _attributesToReturn.map { mapOf("attribute" to it) }
         }
-
-        return dataMap
+        return emptyList()
     }
 
     fun getAuthTransaction(postData: Map<String, Any>): Map<String, Any>

@@ -115,7 +115,7 @@ The authenticator will select the subject based on which attributes where presen
 1. Custom Identifier
 2. Integrator Specific User ID
 3. Relying Party User ID
-4. Sosial Security Number
+4. Social Security Number
 5. Email
 
 If none of these attributes above are returned, the authentication will fail and the user will be redirected to the authentication endpoint so they may try a different authenticator (if configured) or try to login again.

@@ -106,15 +106,15 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
     override fun post(requestModel: RequestModel, response: Response): Optional<AuthenticationResult>
     {
-        val moveOn = when
+        val moveOn = when (requestModel.postRequestModel)
         {
-            requestModel.postRequestModel is WaitModel -> requestModel.postRequestModel.moveOn
+            is WaitModel -> requestModel.postRequestModel.moveOn
             else -> false
         }
 
-        val cancel = when
+        val cancel = when (requestModel.postRequestModel)
         {
-            requestModel.postRequestModel is WaitModel -> requestModel.postRequestModel.cancel
+            is WaitModel -> requestModel.postRequestModel.cancel
             else -> false
         }
 
@@ -125,93 +125,81 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         }
         else if (moveOn)
         {
-            val status = _sessionManager.get(SESSION_STATUS)
+            val status = _sessionManager.remove(SESSION_STATUS)
                     ?: throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid State")
 
             val statusValue = status.value.toString()
             var subject: String? = null
-            _sessionManager.remove(SESSION_STATUS)
             _sessionManager.remove(SESSION_AUTH_REF)
 
             if (statusValue == "APPROVED")
             {
                 val subjectAttributes = ArrayList<Attribute>()
 
-                val nameAttribute = _sessionManager.get(SESSION_NAME)
+                val nameAttribute = _sessionManager.remove(SESSION_NAME)
                 if (nameAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("name", nameAttribute.value.toString()))
-                    _sessionManager.remove(SESSION_NAME)
                 }
 
-                val surnameAttribute = _sessionManager.get(SESSION_SURNAME)
+                val surnameAttribute = _sessionManager.remove(SESSION_SURNAME)
                 if (surnameAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("surname", surnameAttribute.value.toString()))
-                    _sessionManager.remove(SESSION_SURNAME)
                 }
 
-                val emailAttribute = _sessionManager.get(SESSION_EMAIL)
+                val emailAttribute = _sessionManager.remove(SESSION_EMAIL)
                 if (emailAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("email", emailAttribute.value.toString()))
                     subject = emailAttribute.value.toString()
-                    _sessionManager.remove(SESSION_EMAIL)
                 }
 
-                val dateOfBirthAttribute = _sessionManager.get(SESSION_DATE_OF_BIRTH)
+                val dateOfBirthAttribute = _sessionManager.remove(SESSION_DATE_OF_BIRTH)
                 if (dateOfBirthAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("dateOfBirth", dateOfBirthAttribute.value.toString()))
-                    _sessionManager.remove(SESSION_DATE_OF_BIRTH)
                 }
 
-                val ssnAttribute = _sessionManager.get(SESSION_SSN)
+                val ssnAttribute = _sessionManager.remove(SESSION_SSN)
                 if (ssnAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("ssn", ssnAttribute.value.toString()))
                     subject = ssnAttribute.value.toString()
-                    _sessionManager.remove(SESSION_SSN)
                 }
 
-                val countryAttribute = _sessionManager.get(SESSION_COUNTRY)
+                val countryAttribute = _sessionManager.remove(SESSION_COUNTRY)
                 if (countryAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("country", countryAttribute.value.toString()))
-                    _sessionManager.remove(SESSION_COUNTRY)
                 }
 
-                val relyingPartyUserIdAttribute = _sessionManager.get(SESSION_RP_USER_ID)
+                val relyingPartyUserIdAttribute = _sessionManager.remove(SESSION_RP_USER_ID)
                 if (relyingPartyUserIdAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("relyingPartyUserId", relyingPartyUserIdAttribute.value.toString()))
                     subject = relyingPartyUserIdAttribute.value.toString()
-                    _sessionManager.remove(SESSION_RP_USER_ID)
                 }
 
-                val integratorSpecificUserIdAttribute = _sessionManager.get(SESSION_INTEGRATOR_SPECIFIC_USER_ID)
+                val integratorSpecificUserIdAttribute = _sessionManager.remove(SESSION_INTEGRATOR_SPECIFIC_USER_ID)
                 if (integratorSpecificUserIdAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("integratorSpecificUserId", integratorSpecificUserIdAttribute.value.toString()))
                     subject = integratorSpecificUserIdAttribute.value.toString()
-                    _sessionManager.remove(SESSION_INTEGRATOR_SPECIFIC_USER_ID)
                 }
 
-                val customIdentifierAttribute = _sessionManager.get(SESSION_CUSTOM_IDENTIFIER)
+                val customIdentifierAttribute = _sessionManager.remove(SESSION_CUSTOM_IDENTIFIER)
                 if (customIdentifierAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("custom-identifier", customIdentifierAttribute.value.toString()))
                     subject = customIdentifierAttribute.value.toString()
-                    _sessionManager.remove(SESSION_CUSTOM_IDENTIFIER)
                 }
 
-                val timestamp = _sessionManager.get(SESSION_TIMESTAMP)
-                _sessionManager.remove(SESSION_TIMESTAMP)
+                val timestamp = _sessionManager.remove(SESSION_TIMESTAMP)
 
                 if (_sessionManager.get(SESSION_USERNAME) != null)
                 {
-                    subject = _sessionManager.get(SESSION_USERNAME).value.toString()
-                    _sessionManager.remove(SESSION_USERNAME)
+                    subject = _sessionManager.remove(SESSION_USERNAME).value.toString()
                 }
                 else if (subject == null)
                 {
@@ -411,15 +399,8 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
     private fun redirectOnCancelOrError()
     {
-        if (config.qrCodeEnabled())
-        {
-            throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.authenticationBaseUri,
-                    RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
-        }
-        else
-        {
-            throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri,
-                    RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
-        }
+        val uri = if (config.qrCodeEnabled()) config.authenticatorInformationProvider.authenticationBaseUri else config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri
+
+        throw config.exceptionFactory.redirectException(uri, RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
     }
 }

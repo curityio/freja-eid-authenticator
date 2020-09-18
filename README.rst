@@ -104,6 +104,23 @@ Once all of these changes are made, they will be staged, but not committed (i.e.
 
 Once the configuration is committed and running, the authenticator can be used like any other.
 
+Enabling QR Code Authentication
+"""""""""""""""""""""""""""""""
+
+When QR Code Authentication is enabled, the authenticator will not present the user with a field to enter their identifier (email/ssn/phone).
+Instead, a QR code will be displayed that the user must scan in order to perform authentication.
+The Freja API returns `N/A` as the `userInfo` in this case, so the `subject` of the authentication must be taken from the `attributesToReturn`.
+The authenticator will select the subject based on which attributes where present in the response in the following order:
+
+1. Custom Identifier
+2. Integrator Specific User ID
+3. Relying Party User ID
+4. Sosial Security Number
+5. Email
+
+If none of these attributes above are returned, the authentication will fail and the user will be redirected to the authentication endpoint so they may try a different authenticator (if configured) or try to login again.
+
+
 Testing Instructions
 """"""""""""""""""""
 To test the plugin in ``Pre Production`` environment, follow the below instructions.

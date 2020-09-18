@@ -121,16 +121,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         if (cancel)
         {
             cancelAuthentication()
-            if (config.qrCodeEnabled())
-            {
-                throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.authenticationBaseUri,
-                        RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
-            }
-            else
-            {
-                throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri,
-                        RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
-            }
+            redirectOnCancelOrError()
         }
         else if (moveOn)
         {
@@ -138,6 +129,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                     ?: throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid State")
 
             val statusValue = status.value.toString()
+            var subject: String? = null
             _sessionManager.remove(SESSION_STATUS)
             _sessionManager.remove(SESSION_AUTH_REF)
 
@@ -163,6 +155,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 if (emailAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("email", emailAttribute.value.toString()))
+                    subject = emailAttribute.value.toString()
                     _sessionManager.remove(SESSION_EMAIL)
                 }
 
@@ -177,6 +170,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 if (ssnAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("ssn", ssnAttribute.value.toString()))
+                    subject = ssnAttribute.value.toString()
                     _sessionManager.remove(SESSION_SSN)
                 }
 
@@ -187,17 +181,11 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                     _sessionManager.remove(SESSION_COUNTRY)
                 }
 
-                val customIdentifierAttribute = _sessionManager.get(SESSION_CUSTOM_IDENTIFIER)
-                if (customIdentifierAttribute != null)
-                {
-                    subjectAttributes.add(Attribute.of("custom-identifier", customIdentifierAttribute.value.toString()))
-                    _sessionManager.remove(SESSION_CUSTOM_IDENTIFIER)
-                }
-
                 val relyingPartyUserIdAttribute = _sessionManager.get(SESSION_RP_USER_ID)
                 if (relyingPartyUserIdAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("relyingPartyUserId", relyingPartyUserIdAttribute.value.toString()))
+                    subject = relyingPartyUserIdAttribute.value.toString()
                     _sessionManager.remove(SESSION_RP_USER_ID)
                 }
 
@@ -205,19 +193,38 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 if (integratorSpecificUserIdAttribute != null)
                 {
                     subjectAttributes.add(Attribute.of("integratorSpecificUserId", integratorSpecificUserIdAttribute.value.toString()))
+                    subject = integratorSpecificUserIdAttribute.value.toString()
                     _sessionManager.remove(SESSION_INTEGRATOR_SPECIFIC_USER_ID)
+                }
+
+                val customIdentifierAttribute = _sessionManager.get(SESSION_CUSTOM_IDENTIFIER)
+                if (customIdentifierAttribute != null)
+                {
+                    subjectAttributes.add(Attribute.of("custom-identifier", customIdentifierAttribute.value.toString()))
+                    subject = customIdentifierAttribute.value.toString()
+                    _sessionManager.remove(SESSION_CUSTOM_IDENTIFIER)
                 }
 
                 val timestamp = _sessionManager.get(SESSION_TIMESTAMP)
                 _sessionManager.remove(SESSION_TIMESTAMP)
 
-                val subject = _sessionManager.get(SESSION_USERNAME)
-                _sessionManager.remove(SESSION_USERNAME)
+                if (_sessionManager.get(SESSION_USERNAME) != null)
+                {
+                    subject = _sessionManager.get(SESSION_USERNAME).value.toString()
+                    _sessionManager.remove(SESSION_USERNAME)
+                }
+                else if (subject == null)
+                {
+                    _logger.info("Subject could not be resolved, authentication will fail. " +
+                            "Make sure that the required attributes-to-return are configured. " +
+                            "Redirecting to the previous view.")
+                    redirectOnCancelOrError()
+                }
 
                 return Optional.of(
                         AuthenticationResult(
                                 AuthenticationAttributes.of(
-                                        SubjectAttributes.of(subject.value.toString(),
+                                        SubjectAttributes.of(subject,
                                                 Attributes.of(subjectAttributes)),
                                         ContextAttributes.of(Attributes.of(
                                                 Attribute.of("timestamp", timestamp.value.toString()))))))
@@ -400,5 +407,19 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
     else
     {
         config.webServiceClientFactory.create(URI.create("https://$host"))
+    }
+
+    private fun redirectOnCancelOrError()
+    {
+        if (config.qrCodeEnabled())
+        {
+            throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.authenticationBaseUri,
+                    RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+        }
+        else
+        {
+            throw config.exceptionFactory.redirectException(config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri,
+                    RedirectStatusCode.MOVED_TEMPORARILY, emptyMap(), false)
+        }
     }
 }

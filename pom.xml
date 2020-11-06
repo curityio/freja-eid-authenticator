@@ -50,8 +50,7 @@
         <dependency>
             <groupId>se.curity.identityserver</groupId>
             <artifactId>identityserver.sdk</artifactId>
-            <version>${project.curityVersion}</version>
-            <scope>provided</scope>
+            <version>5.4.0-20201106.080954-1</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -80,12 +79,19 @@
     </dependencies>
 
     <repositories>
-        <repository>
-            <id>customer-release-repo</id>
-            <url>https://nexus.curity.se/nexus/content/repositories/customer-release-repo</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+    <repository>
+        <id>customer-release-repo</id>
+        <url>https://nexus.curity.se/nexus/content/repositories/customer-release-repo</url>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </repository>
+    <repository>
+        <id>customer-snapshot-repo</id>
+        <url>https://nexus.curity.se/nexus/content/repositories/customer-snapshot-repo</url>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+    </repository>
+</repositories>
 </project>

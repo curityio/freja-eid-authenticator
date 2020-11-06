@@ -16,20 +16,27 @@
 
 package io.curity.identityserver.plugin.frejaeid.descriptor
 
-import io.curity.identityserver.plugin.frejaeid.authentication.StartRequestHandler
-import io.curity.identityserver.plugin.frejaeid.authentication.WaitRequestHandler
+import io.curity.identityserver.plugin.frejaeid.authentication.*
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
+import se.curity.identityserver.sdk.haapi.RepresentationFunction
 import se.curity.identityserver.sdk.plugin.descriptor.AuthenticatorPluginDescriptor
+import se.curity.identityserver.sdk.plugin.descriptor.HaapiPluginDescriptor
 
-class FrejaEidAuthenticatorPluginDescriptor : AuthenticatorPluginDescriptor<FrejaEidAuthenticatorPluginConfig>
+class FrejaEidAuthenticatorPluginDescriptor : AuthenticatorPluginDescriptor<FrejaEidAuthenticatorPluginConfig>, HaapiPluginDescriptor
 {
     override fun getAuthenticationRequestHandlerTypes():
             Map<String, Class<out se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler<*>>> =
             mapOf("index" to StartRequestHandler::class.java,
                     "wait" to WaitRequestHandler::class.java)
-    
+
     override fun getConfigurationType(): Class<out FrejaEidAuthenticatorPluginConfig> =
             FrejaEidAuthenticatorPluginConfig::class.java
-    
+
     override fun getPluginImplementationType(): String = "freja-eid"
+    override fun getRepresentationFunctions(): Map<String, Class<out RepresentationFunction>>
+    {
+        return mapOf("authenticator/freja-eid/authenticate/get" to GetRepresentationFunction::class.java,
+                "authenticator/freja-eid/authenticate/error" to ErrorRepresentationFunction::class.java,
+                "authenticator/freja-eid/authenticate/wait" to WaitRepresentationFunction::class.java)
+    }
 }

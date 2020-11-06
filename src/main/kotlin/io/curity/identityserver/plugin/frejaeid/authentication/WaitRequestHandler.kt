@@ -100,7 +100,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
         // on request validation failure, we should use the same template as for NOT_FAILURE
         response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(),
-                "authenticate/wait"), HttpStatus.BAD_REQUEST)
+                "authenticate/wait"), Response.ResponseModelScope.ANY)
         return RequestModel(request, null)
     }
 
@@ -315,16 +315,19 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 _sessionManager.put(Attribute.of(SESSION_TIMESTAMP, claimsMap["timestamp"].toString()))
 
                 //Tell the poller we're ready
+                response.putViewData("_haapiMoveOn", true, Response.ResponseModelScope.ANY)
                 response.setHttpStatus(HttpStatus.ACCEPTED)
                 return Optional.empty()
             }
             else if (status == "REJECTED" || status == "EXPIRED" || status == "CANCELED" || status == "RP_CANCELED")
             {
+                response.putViewData("_haapiMoveOn", true, Response.ResponseModelScope.ANY)
                 response.setHttpStatus(HttpStatus.ACCEPTED)
                 return Optional.empty()
             }
         }
 
+        response.putViewData("_haapiMoveOn", false, Response.ResponseModelScope.ANY)
         return Optional.empty()
     }
 

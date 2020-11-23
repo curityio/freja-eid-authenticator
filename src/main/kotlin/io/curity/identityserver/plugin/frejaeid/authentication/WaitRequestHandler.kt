@@ -101,6 +101,8 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         // on request validation failure, we should use the same template as for NOT_FAILURE
         response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(),
                 "authenticate/wait"), Response.ResponseModelScope.ANY)
+        response.putViewData("_haapiMoveOn", false, Response.ResponseModelScope.ANY)
+
         return RequestModel(request, null)
     }
 
@@ -326,8 +328,6 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 return Optional.empty()
             }
         }
-
-        response.putViewData("_haapiMoveOn", false, Response.ResponseModelScope.ANY)
         return Optional.empty()
     }
 

@@ -42,8 +42,8 @@ class WaitRepresentationFunction : RepresentationFunction
 {
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
-        val action = URI.create(model.getString("_authUrl"))
-        val forceMoveOn = model.getAs("_haapiMoveOn", Boolean::class.java)
+        val action = URI.create(model.getString("_authUrl") + "/wait")
+        val forceMoveOn = model.getAs("_haapiMoveOn", Boolean::class.javaObjectType)
         return if (forceMoveOn)
         {
             factory.newPollingStep().completed(true) { step ->

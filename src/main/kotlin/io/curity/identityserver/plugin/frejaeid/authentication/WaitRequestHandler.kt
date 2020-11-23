@@ -327,6 +327,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             }
         }
 
+        response.putViewData("_haapiMoveOn", false, Response.ResponseModelScope.ANY)
         return Optional.empty()
     }
 

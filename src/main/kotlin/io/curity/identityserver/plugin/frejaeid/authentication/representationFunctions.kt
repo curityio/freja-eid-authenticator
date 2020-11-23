@@ -11,12 +11,8 @@ class GetRepresentationFunction : RepresentationFunction
 {
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
-        val modelMap: Map<String, Any> = model.getViewData()
-        val authUrl = modelMap["_authUrl"]?.let { URI.create(it.toString()) }
-                ?: throw IllegalStateException("auth url missing")
-        val userInfoType = modelMap["userInfoType"] as? String
-                ?: throw java.lang.IllegalStateException("userInfoType missing")
-
+        val authUrl = URI.create(model.getString("_authUrl"))
+        val userInfoType = model.getString("userInfoType")
 
         return factory.newAuthenticationStep { step ->
             step.addMessage(Message.ofKey("view.$userInfoType.description"), HaapiContract.MessageClasses.INFO)
@@ -33,10 +29,8 @@ class ErrorRepresentationFunction : RepresentationFunction
 {
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
-        val modelMap: Map<String, Any> = model.getViewData()
-        val restartLink = modelMap["_authUrl"]?.let { URI.create(it.toString()) }
-                ?: throw IllegalStateException("auth url missing")
-        val error = modelMap["error"] as? String ?: throw IllegalStateException("error missing")
+        val restartLink = URI.create(model.getString("_authUrl"))
+        val error = model.getString("error")
         return factory.newAuthenticationStep { step ->
             step.addLink(restartLink, LinkRelation.of("restart"), Message.ofKey("error.restart"))
             step.addMessage(Message.ofKey(error), HaapiContract.MessageClasses.ERROR)
@@ -48,10 +42,8 @@ class WaitRepresentationFunction : RepresentationFunction
 {
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
-        val modelMap: Map<String, Any> = model.getViewData()
-        val action = modelMap["_authUrl"]?.let { URI.create(it.toString() + "/wait") }
-                ?: throw IllegalStateException("action missing")
-        val forceMoveOn = modelMap["_haapiMoveOn"] as? Boolean ?: false
+        val action = URI.create(model.getString("_authUrl"))
+        val forceMoveOn = model.getAs("_haapiMoveOn", Boolean::class.java)
         return if (forceMoveOn)
         {
             factory.newPollingStep().completed(true) { step ->

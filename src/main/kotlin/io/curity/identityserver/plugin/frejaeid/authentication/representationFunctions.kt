@@ -1,9 +1,6 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
-import se.curity.identityserver.sdk.haapi.HaapiContract
-import se.curity.identityserver.sdk.haapi.Message
-import se.curity.identityserver.sdk.haapi.RepresentationFactory
-import se.curity.identityserver.sdk.haapi.RepresentationFunction
+import se.curity.identityserver.sdk.haapi.*
 import se.curity.identityserver.sdk.http.HttpMethod
 import se.curity.identityserver.sdk.http.MediaType
 import se.curity.identityserver.sdk.web.LinkRelation
@@ -12,8 +9,9 @@ import java.net.URI
 
 class GetRepresentationFunction : RepresentationFunction
 {
-    override fun apply(modelMap: MutableMap<String, Any>, factory: RepresentationFactory): Representation
+    override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
+        val modelMap: Map<String, Any> = model.getViewData()
         val authUrl = modelMap["_authUrl"]?.let { URI.create(it.toString()) }
                 ?: throw IllegalStateException("auth url missing")
         val userInfoType = modelMap["userInfoType"] as? String
@@ -33,8 +31,9 @@ class GetRepresentationFunction : RepresentationFunction
 
 class ErrorRepresentationFunction : RepresentationFunction
 {
-    override fun apply(modelMap: MutableMap<String, Any>, factory: RepresentationFactory): Representation
+    override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
+        val modelMap: Map<String, Any> = model.getViewData()
         val restartLink = modelMap["_authUrl"]?.let { URI.create(it.toString()) }
                 ?: throw IllegalStateException("auth url missing")
         val error = modelMap["error"] as? String ?: throw IllegalStateException("error missing")
@@ -47,8 +46,9 @@ class ErrorRepresentationFunction : RepresentationFunction
 
 class WaitRepresentationFunction : RepresentationFunction
 {
-    override fun apply(modelMap: MutableMap<String, Any>, factory: RepresentationFactory): Representation
+    override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
+        val modelMap: Map<String, Any> = model.getViewData()
         val action = modelMap["_authUrl"]?.let { URI.create(it.toString() + "/wait") }
                 ?: throw IllegalStateException("action missing")
         val forceMoveOn = modelMap["_haapiMoveOn"] as? Boolean ?: false
@@ -63,8 +63,8 @@ class WaitRepresentationFunction : RepresentationFunction
         else
         {
             factory.newPollingStep().pending { step ->
-                step.setPollAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED) {}
-                step.setCancelAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED,
+                step.setPollFormAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED, null, Actions.EMPTY_CONSUMER)
+                step.setCancelFormAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED,
                         Message.ofKey("wait.cancel"),
                         Message.ofKey("wait.cancel")) { fields ->
                     fields.addHiddenField("cancel", "true")

@@ -50,7 +50,7 @@
         <dependency>
             <groupId>se.curity.identityserver</groupId>
             <artifactId>identityserver.sdk</artifactId>
-            <version>5.4.0-20201106.080954-1</version>
+            <version>5.4.0-20201123.091157-4</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

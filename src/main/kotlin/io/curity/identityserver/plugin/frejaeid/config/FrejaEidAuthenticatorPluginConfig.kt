@@ -88,9 +88,7 @@ enum class AttributesToReturn
 {
     BASIC_USER_INFO,
     EMAIL_ADDRESS,
-    ALL_EMAIL_ADDRESSES,
     DATE_OF_BIRTH,
-    ADDRESSES,
     SSN,
     CUSTOM_IDENTIFIER,
     RELYING_PARTY_USER_ID,

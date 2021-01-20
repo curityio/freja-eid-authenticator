@@ -1,6 +1,7 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
 import se.curity.identityserver.sdk.haapi.*
+import se.curity.identityserver.sdk.haapi.HaapiContract.Links.Relations.QR_CODE
 import se.curity.identityserver.sdk.http.HttpMethod
 import se.curity.identityserver.sdk.http.MediaType
 import se.curity.identityserver.sdk.web.LinkRelation
@@ -9,6 +10,11 @@ import java.net.URI
 
 class GetRepresentationFunction : RepresentationFunction
 {
+    companion object
+    {
+        val titleMessage: Message = Message.ofKey("view.title")
+        val submitMessage: Message = Message.ofKey("view.submit")
+    }
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
         val authUrl = URI.create(model.getString("_authUrl"))
@@ -17,7 +23,7 @@ class GetRepresentationFunction : RepresentationFunction
         return factory.newAuthenticationStep { step ->
             step.addMessage(Message.ofKey("view.$userInfoType.description"), HaapiContract.MessageClasses.INFO)
             step.addFormAction(HaapiContract.Actions.Kinds.LOGIN, authUrl, HttpMethod.POST,
-                    MediaType.X_WWW_FORM_URLENCODED, Message.ofKey("view.title"), Message.ofKey("view.submit")) { fields ->
+                    MediaType.X_WWW_FORM_URLENCODED, titleMessage, submitMessage) { fields ->
                 fields.addTextField("username", Message.ofKey("view.$userInfoType.label"))
 
             }
@@ -27,12 +33,16 @@ class GetRepresentationFunction : RepresentationFunction
 
 class ErrorRepresentationFunction : RepresentationFunction
 {
+    companion object
+    {
+        val restartMessage: Message = Message.ofKey("error.restart")
+    }
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
         val restartLink = URI.create(model.getString("_authUrl"))
         val error = model.getString("error")
         return factory.newAuthenticationStep { step ->
-            step.addLink(restartLink, LinkRelation.of("restart"), Message.ofKey("error.restart"))
+            step.addLink(restartLink, LinkRelation.of("restart"), restartMessage)
             step.addMessage(Message.ofKey(error), HaapiContract.MessageClasses.ERROR)
         }
     }
@@ -40,6 +50,12 @@ class ErrorRepresentationFunction : RepresentationFunction
 
 class WaitRepresentationFunction : RepresentationFunction
 {
+    companion object
+    {
+        val cancelMessage: Message = Message.ofKey("wait.cancel")
+        val thisDeviceMessage: Message = Message.ofKey("view.this-device")
+
+    }
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
         val action = URI.create(model.getString("_authUrl") + "/wait")
@@ -54,11 +70,17 @@ class WaitRepresentationFunction : RepresentationFunction
         }
         else
         {
+            val thisDeviceLink = model.getOptionalString("_thisDeviceLink")
+            val qrCode = model.getOptionalString("_qrCode")
             factory.newPollingStep().pending { step ->
+                if (qrCode.isPresent && thisDeviceLink.isPresent) {
+                    step.addLink(URI.create(thisDeviceLink.get()), LinkRelation.of("this-device"), thisDeviceMessage)
+                    step.addLink(URI.create(qrCode.get()), QR_CODE)
+                }
                 step.setPollFormAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED, null, Actions.EMPTY_CONSUMER)
                 step.setCancelFormAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED,
-                        Message.ofKey("wait.cancel"),
-                        Message.ofKey("wait.cancel")) { fields ->
+                        cancelMessage,
+                        cancelMessage) { fields ->
                     fields.addHiddenField("cancel", "true")
                 }
             }

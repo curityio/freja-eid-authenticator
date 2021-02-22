@@ -1,7 +1,6 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
 import se.curity.identityserver.sdk.haapi.*
-import se.curity.identityserver.sdk.haapi.HaapiContract.Links.Relations.QR_CODE
 import se.curity.identityserver.sdk.http.HttpMethod
 import se.curity.identityserver.sdk.http.MediaType
 import se.curity.identityserver.sdk.web.LinkRelation
@@ -54,7 +53,8 @@ class WaitRepresentationFunction : RepresentationFunction
     {
         val cancelMessage: Message = Message.ofKey("wait.cancel")
         val thisDeviceMessage: Message = Message.ofKey("view.this-device")
-
+        val scanQrCode: Message = Message.ofKey("view.scan-qrcode")
+        val startAppLinkRelation: LinkRelation = LinkRelation.of("app-start")
     }
     override fun apply(model: RepresentationModel, factory: RepresentationFactory): Representation
     {
@@ -74,8 +74,8 @@ class WaitRepresentationFunction : RepresentationFunction
             val qrCode = model.getOptionalString("_qrCode")
             factory.newPollingStep().pending { step ->
                 if (qrCode.isPresent && thisDeviceLink.isPresent) {
-                    step.addLink(URI.create(thisDeviceLink.get()), LinkRelation.of("this-device"), thisDeviceMessage)
-                    step.addLink(URI.create(qrCode.get()), QR_CODE)
+                    step.addLink(URI.create(thisDeviceLink.get()), startAppLinkRelation, thisDeviceMessage)
+                    step.addLink(URI.create(qrCode.get()), startAppLinkRelation, scanQrCode, MediaType.IMAGE_PNG)
                 }
                 step.setPollFormAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED, null, Actions.EMPTY_CONSUMER)
                 step.setCancelFormAction(action, HttpMethod.POST, MediaType.X_WWW_FORM_URLENCODED,

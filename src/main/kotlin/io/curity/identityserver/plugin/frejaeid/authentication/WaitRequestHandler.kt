@@ -75,32 +75,37 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
     override fun preProcess(request: Request, response: Response): RequestModel
     {
-        if (request.isGetRequest)
+
+        var viewData = emptyMap<String, String>()
+        if (config.qrCodeEnabled())
         {
-            var viewData = emptyMap<String, String>()
-            if (config.qrCodeEnabled())
-            {
+            val authRef : String?
+            if (config.sessionManager.get(SESSION_AUTH_REF) == null && request.isGetRequest) {
                 //the following data are proposed from freja documentation on QRCode generation
                 val postData = _requestLogicHelper.createQRCodePostData()
                 val responseData = _requestLogicHelper.getAuthTransaction(postData)
-                val authRef = responseData["authRef"]?.toString()
+                authRef = responseData["authRef"]?.toString()
                 config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
-                val baseUrl = if (config.environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
-
-                val cspOverride = "img-src 'self' $baseUrl;"
-                val appLink = _requestLogicHelper.generateAppLink(authRef.toString())
-                val qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink, config.environment)
-                viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to cspOverride, THIS_DEVICE_LINK to appLink)
+            } else {
+                authRef = config.sessionManager.get(SESSION_AUTH_REF).getValueOfType(String::class.java)
             }
+            val baseUrl = if (config.environment == PredefinedEnvironment.PRODUCTION) QR_CODE_GENERATE_URL_PROD else QR_CODE_GENERATE_URL_TEST
 
-            response.setResponseModel(ResponseModel.templateResponseModel(
-                    viewData, "authenticate/wait"),
-                    Response.ResponseModelScope.NOT_FAILURE)
+            val cspOverride = "img-src 'self' $baseUrl;"
+            val appLink = _requestLogicHelper.generateAppLink(authRef.toString())
+            val qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink, config.environment)
+            viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to cspOverride, THIS_DEVICE_LINK to appLink)
         }
+
+        response.setResponseModel(ResponseModel.templateResponseModel(
+                viewData, "authenticate/wait"),
+                Response.ResponseModelScope.NOT_FAILURE)
 
         // on request validation failure, we should use the same template as for NOT_FAILURE
         response.setResponseModel(ResponseModel.templateResponseModel(emptyMap(),
-                "authenticate/wait"), HttpStatus.BAD_REQUEST)
+                "authenticate/wait"), Response.ResponseModelScope.ANY)
+        response.putViewData("_haapiMoveOn", false, Response.ResponseModelScope.ANY)
+
         return RequestModel(request, null)
     }
 
@@ -315,16 +320,17 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
                 _sessionManager.put(Attribute.of(SESSION_TIMESTAMP, claimsMap["timestamp"].toString()))
 
                 //Tell the poller we're ready
+                response.putViewData("_haapiMoveOn", true, Response.ResponseModelScope.ANY)
                 response.setHttpStatus(HttpStatus.ACCEPTED)
                 return Optional.empty()
             }
             else if (status == "REJECTED" || status == "EXPIRED" || status == "CANCELED" || status == "RP_CANCELED")
             {
+                response.putViewData("_haapiMoveOn", true, Response.ResponseModelScope.ANY)
                 response.setHttpStatus(HttpStatus.ACCEPTED)
                 return Optional.empty()
             }
         }
-
         return Optional.empty()
     }
 

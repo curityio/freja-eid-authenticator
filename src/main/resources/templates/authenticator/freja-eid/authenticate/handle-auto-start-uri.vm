@@ -36,9 +36,8 @@
      * @returns string auto-start URI for BankID
      */
     function getAutoStartUri() {
-        // in case the device is not iOS, you can append &originAppScheme=my.custom.scheme://
-        // in the autostartUri returned by this method so Freja app can automatically return to your application
-        // once authentication is done or cancelled
+        // You can append &originAppScheme=my.custom.scheme:// in the uri returned by this method
+        // so the Freja e-id app can automatically return to your application once authentication is done or cancelled
         return "$!_thisDeviceLink"
     }
 </script>

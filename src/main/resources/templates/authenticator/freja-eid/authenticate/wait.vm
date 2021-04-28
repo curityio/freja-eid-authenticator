@@ -26,7 +26,7 @@
             <img src="$_qrCode" class="mx-auto block" title="$!_downloadUri"
                  alt="$!_downloadUri">
             </span>
-        <a class="button button-fullwidth button-primary center mt2"
+        <a id="manualStart" class="button button-fullwidth button-primary center mt2"
            href="$!_thisDeviceLink">#message("${_templatePrefix}.view.this-device")</a>
     </div>
     #else
@@ -70,6 +70,9 @@
         <a href="$_authUrl" role="button">
             <i class="icon ion-refresh inlineicon"></i>#message("authenticator.freja-eid.authenticate.wait.back")</a>
     </div>
+    #else
+        #parse("authenticator/freja-eid/authenticate/handle-auto-start-uri")
+        #parse("fragments/authentication-app-launcher")
     #end
 #end
 

@@ -120,6 +120,11 @@ The authenticator will select the subject based on which attributes where presen
 
 If none of these attributes above are returned, the authentication will fail and the user will be redirected to the authentication endpoint so they may try a different authenticator (if configured) or try to login again.
 
+Note: When QR Code is enabled, the authenticator will try to autostart the Freja e-id mobile app.
+This can be disabled by overriding the template `freja-eid/authenticate/wait.vm` and removing the parsing of `authentication-app-launcher` fragment.
+In case the authenticator is to be used by a specific mobile app, it is possible to override `freja-eid/handle-auto-start-uri.vm`
+to pass an extra parameter to the url so the Freja e-id application can go back to the original application.
+
 
 Testing Instructions
 """"""""""""""""""""

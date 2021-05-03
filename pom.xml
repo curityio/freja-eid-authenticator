@@ -6,7 +6,7 @@
 
     <groupId>io.curity.identityserver.plugin</groupId>
     <artifactId>identityserver.plugins.authenticators.freja-eid</artifactId>
-    <version>3.2.0</version>
+    <version>4.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Curity Verisec Authenticator</name>
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>se.curity.identityserver</groupId>
             <artifactId>identityserver.sdk</artifactId>
-            <version>${project.curityVersion}</version>
+            <version>6.1.0-90e0eec60d</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -83,14 +83,36 @@
     </dependencies>
 
     <repositories>
-
-        <!-- to allow using snapshot versions of the server SDK -->
+        <repository>
+            <id>customer-release-repo</id>
+            <url>https://nexus.curity.se/repository/customer-release-repo/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
         <repository>
             <id>customer-snapshot-repo</id>
-            <url>https://nexus.curity.se/nexus/content/repositories/customer-snapshot-repo</url>
+            <name>Customer Snapshot Repository</name>
+            <url>https://nexus.curity.se/repository/customer-snapshot-repo/</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
     </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>customer-release-repo</id>
+            <name>Customer Release Repository</name>
+            <url>https://nexus.curity.se/repository/customer-release-repo/</url>
+        </repository>
+        <snapshotRepository>
+            <id>customer-snapshot-repo</id>
+            <name>Curity Nexus Snapshot Repository</name>
+            <url>https://nexus.curity.se/repository/customer-snapshot-repo/</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>

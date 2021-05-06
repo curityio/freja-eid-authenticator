@@ -28,10 +28,11 @@ import se.curity.identityserver.sdk.attribute.ContextAttributes
 import se.curity.identityserver.sdk.attribute.SubjectAttributes
 import se.curity.identityserver.sdk.authentication.BackchannelAuthenticationHandler
 import se.curity.identityserver.sdk.authentication.BackchannelAuthenticationRequest
-import java.util.Optional
 import se.curity.identityserver.sdk.authentication.BackchannelAuthenticationResult
 import se.curity.identityserver.sdk.authentication.BackchannelAuthenticatorState
+import se.curity.identityserver.sdk.authentication.BackchannelStartAuthenticationResult
 import se.curity.identityserver.sdk.errors.ErrorCode
+import java.util.Optional
 
 class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthenticatorPluginConfig)
     : BackchannelAuthenticationHandler
@@ -42,7 +43,8 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
     private val _userInfoType = config.userInfoType
     private val _sessionManager = config.sessionManager
 
-    override fun startAuthentication(authReqId: String, authRequest: BackchannelAuthenticationRequest): Boolean
+    override fun startAuthentication(authReqId: String, authRequest: BackchannelAuthenticationRequest):
+            BackchannelStartAuthenticationResult
     {
         _logger.debug("Starting Freja eid backchannel authentication for ${authRequest.subject} with $authReqId")
 
@@ -54,14 +56,32 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
             when
             {
                 // when binding message is present, use sign method instead of authenticate
-                authRequest.bindingMessage != null -> requestSignature(authReqId, authRequest.bindingMessage, postData)
-                else -> requestAuthentication(authReqId, postData)
+                authRequest.bindingMessage != null -> {
+                    if (requestSignature(authReqId, authRequest.bindingMessage, postData)) {
+                        BackchannelStartAuthenticationResult.ok()
+                    }
+                    else {
+                        BackchannelStartAuthenticationResult.error("server_error",
+                                "Failed Freja signature request")
+                    }
+                }
+
+                else -> {
+                    if (requestAuthentication(authReqId, postData)) {
+                        BackchannelStartAuthenticationResult.ok()
+                    }
+                    else {
+                        BackchannelStartAuthenticationResult.error("server_error",
+                                "Failed Freja authentication request")
+                    }
+                }
             }
         }
         catch (e: Exception)
         {
             _logger.debug("Freja backchannel authentication not started for $authReqId. ${e.message}")
-            false
+            BackchannelStartAuthenticationResult.error("server_error",
+                    "Failed Freja request")
         }
     }
 

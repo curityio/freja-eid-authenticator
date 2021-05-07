@@ -112,13 +112,13 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
         return emptyList()
     }
 
-    fun doAuthenticate(postData: Map<String, Any>): Map<String, Any>
+    fun requestAuthentication(postData: Map<String, Any>): Map<String, Any>
     {
         _logger.trace("Posting an authentication request to Freja")
         return callFrejaService("/authentication/1.0/initAuthentication", "initAuthRequest", postData)
     }
 
-    fun doSign(postData: Map<String, Any>): Map<String, Any>
+    fun requestSignature(postData: Map<String, Any>): Map<String, Any>
     {
         _logger.trace("Posting a request to sign")
         return callFrejaService("/sign/1.0/initSignature", "initSignRequest", postData)

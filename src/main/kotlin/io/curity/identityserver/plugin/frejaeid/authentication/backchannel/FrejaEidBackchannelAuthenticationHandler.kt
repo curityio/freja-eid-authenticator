@@ -87,7 +87,7 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
 
     private fun requestAuthentication(authReqId: String, postData: Map<String, Any>): Boolean
     {
-        val responseData = _requestLogicHelper.doAuthenticate(postData)
+        val responseData = _requestLogicHelper.requestAuthentication(postData)
         val authRef = responseData["authRef"]?.toString()
         if (authRef != null)
         {
@@ -102,7 +102,7 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
     private fun requestSignature(authReqId: String, bindingMessage: String, postData: Map<String, Any>): Boolean
     {
         val postDataWithSignableText = _requestLogicHelper.addSignTextToPostData(bindingMessage, postData)
-        val responseData = _requestLogicHelper.doSign(postDataWithSignableText)
+        val responseData = _requestLogicHelper.requestSignature(postDataWithSignableText)
         val signRef = responseData["signRef"]?.toString()
         if (signRef != null)
         {

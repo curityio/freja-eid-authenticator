@@ -114,7 +114,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         config.sessionManager.put(Attribute.of(SESSION_USERNAME, username))
 
         val postData = _requestLogicHelper.createPostData(_userInfoType, username).toMutableMap()
-        val responseData = _requestLogicHelper.doAuthenticate(postData)
+        val responseData = _requestLogicHelper.requestAuthentication(postData)
         val authRef = responseData["authRef"]?.toString()
 
         if (authRef != null)

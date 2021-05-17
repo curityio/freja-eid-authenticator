@@ -82,15 +82,11 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-
-        <!-- to allow using snapshot versions of the server SDK -->
-        <repository>
+    <distributionManagement>
+        <snapshotRepository>
             <id>customer-snapshot-repo</id>
-            <url>https://nexus.curity.se/nexus/content/repositories/customer-snapshot-repo</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+            <name>Curity Nexus Snapshot Repository</name>
+            <url>https://nexus.curityio.net/repository/customer-snapshot-repo/</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>

@@ -16,8 +16,24 @@
 
 package io.curity.identityserver.plugin.frejaeid.authentication
 
-import io.curity.identityserver.plugin.frejaeid.authentication.RequestLogicHelper.Companion.QR_CODE_GENERATE_URL_PROD
-import io.curity.identityserver.plugin.frejaeid.authentication.RequestLogicHelper.Companion.QR_CODE_GENERATE_URL_TEST
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.CSP_OVERRIDE_IMG_SRC
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.QR_CODE
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.QR_CODE_GENERATE_URL_PROD
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.QR_CODE_GENERATE_URL_TEST
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_AUTH_REF
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_COUNTRY
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_CUSTOM_IDENTIFIER
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_DATE_OF_BIRTH
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_EMAIL
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_INTEGRATOR_SPECIFIC_USER_ID
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_NAME
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_RP_USER_ID
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_SSN
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_STATUS
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_SURNAME
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_TIMESTAMP
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_USERNAME
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.THIS_DEVICE_LINK
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
 import io.curity.identityserver.plugin.frejaeid.config.PredefinedEnvironment
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
@@ -27,47 +43,20 @@ import se.curity.identityserver.sdk.attribute.*
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.errors.ErrorCode
-import se.curity.identityserver.sdk.http.HttpRequest
-import se.curity.identityserver.sdk.http.HttpResponse
 import se.curity.identityserver.sdk.http.HttpStatus
 import se.curity.identityserver.sdk.http.RedirectStatusCode
-import se.curity.identityserver.sdk.service.WebServiceClient
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel
-import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.set
 
 class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) : AuthenticatorRequestHandler<RequestModel>
 {
-    companion object
-    {
-        const val SESSION_USERNAME = "freja-username"
-        const val SESSION_STATUS = "freja-status"
-        const val SESSION_NAME = "freja-name"
-        const val SESSION_AUTH_REF = "freja-authref"
-        const val SESSION_SURNAME = "freja-surname"
-        const val SESSION_EMAIL = "freja-email"
-        const val SESSION_DATE_OF_BIRTH = "freja-date-of-birth"
-        const val SESSION_SSN = "freja-ssn"
-        const val SESSION_COUNTRY = "freja-country"
-        const val SESSION_RP_USER_ID = "freja-rp-user-id"
-        const val SESSION_CUSTOM_IDENTIFIER = "freja-custom-identifier"
-        const val SESSION_TIMESTAMP = "freja-timestamp"
-        const val SESSION_INTEGRATOR_SPECIFIC_USER_ID = "freja-integrator-specific-user-id"
-        const val QR_CODE = "_qrCode"
-        const val CSP_OVERRIDE_IMG_SRC = "_cspImgsrc"
-        const val THIS_DEVICE_LINK = "_thisDeviceLink"
-    }
-
     private val _logger: Logger = LoggerFactory.getLogger(StartRequestHandler::class.java)
 
-    private val _json = config.json
     private val _sessionManager = config.sessionManager
-    private val _relyingPartyId = config.relyingPartyId.orElse(null)
     private val _requestLogicHelper = RequestLogicHelper(config)
 
     override fun get(requestModel: RequestModel, response: Response): Optional<AuthenticationResult> = Optional.empty()
@@ -83,7 +72,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             if (config.sessionManager.get(SESSION_AUTH_REF) == null && request.isGetRequest) {
                 //the following data are proposed from freja documentation on QRCode generation
                 val postData = _requestLogicHelper.createQRCodePostData()
-                val responseData = _requestLogicHelper.getAuthTransaction(postData)
+                val responseData = _requestLogicHelper.requestAuthentication(postData)
                 authRef = responseData["authRef"]?.toString()
                 config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
             } else {
@@ -125,7 +114,10 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
         if (cancel)
         {
-            cancelAuthentication()
+            val authRefAttribute: Attribute = _sessionManager.get(SESSION_AUTH_REF)
+                    ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
+                            "$SESSION_AUTH_REF cannot be null")
+            _requestLogicHelper.cancelAuthenticationRequest(authRefAttribute)
             redirectOnCancelOrError()
         }
         else if (moveOn)
@@ -249,22 +241,14 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
         }
         else
         {
-            val responseData = checkAuthenticationStatus() as Map<*, *>
+            val responseData = _requestLogicHelper.checkAuthenticationStatus(
+                    _sessionManager.get(SESSION_AUTH_REF))
             val status = responseData["status"]
             _sessionManager.put(Attribute.of(SESSION_STATUS, status.toString()))
 
             if (status == "APPROVED")
             {
-                val jwtParts = Objects.toString(responseData["details"]).split("\\.".toRegex(), 3).toTypedArray()
-
-                if (jwtParts.size < 2)
-                {
-                    throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Invalid JWS")
-                }
-
-                val base64Url = Base64.getUrlDecoder()
-                val body = String(base64Url.decode(jwtParts[1]))
-                val claimsMap = _json.toAttributes(body)
+                val claimsMap = _requestLogicHelper.extractAttributesFromJwt(responseData)
 
                 val requestedAttributes = when
                 {
@@ -332,75 +316,6 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             }
         }
         return Optional.empty()
-    }
-
-    private fun cancelAuthentication()
-    {
-        val authRef = _sessionManager.get(SESSION_AUTH_REF)?.let {
-            _json.toJson(Collections.singletonMap("authRef", it.value)).toByteArray()
-        } ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
-                "authRef cannot be null")
-        _sessionManager.remove(SESSION_AUTH_REF)
-        val authResultRequest = "cancelAuthRequest=${Base64.getEncoder().encodeToString(authRef)}"
-        val requestBody = _relyingPartyId?.let { "$authResultRequest&relyingPartyId=$it" } ?: authResultRequest
-        val httpResponse = getWebServiceClient(config.environment.getHost())
-                .withPath("/authentication/1.0/cancel")
-                .request()
-                .contentType("text/plain")
-                .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
-                .post()
-                .response()
-        val statusCode = httpResponse.statusCode()
-
-        if (statusCode != 200)
-        {
-            if (_logger.isWarnEnabled)
-            {
-                _logger.warn("Got error response from cancel endpoint: error = {}, {}", statusCode,
-                        httpResponse.body(HttpResponse.asString()))
-            }
-        }
-    }
-
-    private fun checkAuthenticationStatus(): Map<String, Any>
-    {
-        val authRef = _sessionManager.get(SESSION_AUTH_REF)?.let {
-            _json.toJson(Collections.singletonMap("authRef", it.value)).toByteArray()
-        }
-                ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
-                        "authRef cannot be null")
-        val authResultRequest = "getOneAuthResultRequest=${Base64.getEncoder().encodeToString(authRef)}"
-        val requestBody = _relyingPartyId?.let { "$authResultRequest&relyingPartyId=$it" } ?: authResultRequest
-        val httpResponse = getWebServiceClient(config.environment.getHost())
-                .withPath("/authentication/1.0/getOneResult")
-                .request()
-                .contentType("text/plain")
-                .body(HttpRequest.fromString(requestBody, StandardCharsets.UTF_8))
-                .post()
-                .response()
-        val statusCode = httpResponse.statusCode()
-
-        if (statusCode != 200)
-        {
-            if (_logger.isWarnEnabled)
-            {
-                _logger.warn("Got error response from token endpoint: error = {}, {}", statusCode,
-                        httpResponse.body(HttpResponse.asString()))
-            }
-
-            throw config.exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR)
-        }
-
-        return _json.fromJson(httpResponse.body(HttpResponse.asString()))
-    }
-
-    private fun getWebServiceClient(host: String): WebServiceClient = if (config.httpClient.isPresent)
-    {
-        config.webServiceClientFactory.create(config.httpClient.get()).withHost(host)
-    }
-    else
-    {
-        config.webServiceClientFactory.create(URI.create("https://$host"))
     }
 
     private fun redirectOnCancelOrError()

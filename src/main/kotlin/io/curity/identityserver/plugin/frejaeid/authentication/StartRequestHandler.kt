@@ -16,8 +16,8 @@
 
 package io.curity.identityserver.plugin.frejaeid.authentication
 
-import io.curity.identityserver.plugin.frejaeid.authentication.WaitRequestHandler.Companion.SESSION_AUTH_REF
-import io.curity.identityserver.plugin.frejaeid.authentication.WaitRequestHandler.Companion.SESSION_USERNAME
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_AUTH_REF
+import io.curity.identityserver.plugin.frejaeid.authentication.FrejaConstants.Companion.SESSION_USERNAME
 import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPluginConfig
 import se.curity.identityserver.sdk.attribute.Attribute
 import se.curity.identityserver.sdk.authentication.AuthenticatedState
@@ -82,7 +82,6 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                 }
                 authenticatedState.isAuthenticated ->
                 {
-
                     startAuthentication(requestModel)
                 }
                 else ->
@@ -102,21 +101,20 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         }
         else
         {
-            when
+            when (requestModel.postRequestModel)
             {
-                requestModel.postRequestModel is SSNRequestModel -> requestModel.postRequestModel.username
-                requestModel.postRequestModel is EmailModel -> requestModel.postRequestModel.username
-                requestModel.postRequestModel is PhoneRequestModel -> requestModel.postRequestModel.username
-                else ->
-                    throw _exceptionFactory.internalServerException(ErrorCode.CONFIGURATION_ERROR)
+                is SSNRequestModel -> requestModel.postRequestModel.username
+                is EmailModel -> requestModel.postRequestModel.username
+                is PhoneRequestModel -> requestModel.postRequestModel.username
+                else -> throw _exceptionFactory.internalServerException(ErrorCode.CONFIGURATION_ERROR)
             }
         }
 
         _userPreferencesManager.saveUsername(username)
-        config.sessionManager.put(Attribute.of(SESSION_USERNAME, username));
+        config.sessionManager.put(Attribute.of(SESSION_USERNAME, username))
 
         val postData = _requestLogicHelper.createPostData(_userInfoType, username).toMutableMap()
-        val responseData = _requestLogicHelper.getAuthTransaction(postData)
+        val responseData = _requestLogicHelper.requestAuthentication(postData)
         val authRef = responseData["authRef"]?.toString()
 
         if (authRef != null)

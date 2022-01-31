@@ -48,7 +48,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     {
         val dataMap = HashMap<String, Any>(2)
 
-        dataMap["userInfoType"] = _userInfoType.toString().toLowerCase()
+        dataMap["userInfoType"] = _userInfoType.toString().lowercase()
 
         if (request.isGetRequest)
         {

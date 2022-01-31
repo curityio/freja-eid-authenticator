@@ -17,8 +17,8 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
-import org.hibernate.validator.constraints.Email
-import org.hibernate.validator.constraints.NotBlank
+import javax.validation.constraints.Email
+import javax.validation.constraints.NotBlank
 import se.curity.identityserver.sdk.web.Request
 import javax.validation.Valid
 import javax.validation.constraints.Pattern

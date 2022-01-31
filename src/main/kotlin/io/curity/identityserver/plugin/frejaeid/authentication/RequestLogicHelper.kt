@@ -209,7 +209,7 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
         config.webServiceClientFactory.create(URI.create("https://$host"))
     }
 
-    fun generateQRCodeLink(baseUrl: String, appLink: String, environment: PredefinedEnvironment): String
+    fun generateQRCodeLink(baseUrl: String, appLink: String): String
     {
         val builder = StringBuilder(baseUrl)
         builder.append(QR_CODE_GENERATE_PATH)

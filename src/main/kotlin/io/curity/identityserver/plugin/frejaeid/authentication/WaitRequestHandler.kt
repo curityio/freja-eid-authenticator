@@ -82,7 +82,7 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
 
             val cspOverride = "img-src 'self' $baseUrl;"
             val appLink = _requestLogicHelper.generateAppLink(authRef.toString())
-            val qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink, config.environment)
+            val qrCode = _requestLogicHelper.generateQRCodeLink(baseUrl, appLink)
             viewData = mapOf(QR_CODE to qrCode, CSP_OVERRIDE_IMG_SRC to cspOverride, THIS_DEVICE_LINK to appLink)
         }
 
@@ -218,8 +218,8 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             {
                 val dataMap: HashMap<String, Any> = HashMap(2)
 
-                dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
-                dataMap["error"] = "error.request.${status.value.toString().toLowerCase()}"
+                dataMap["userInfoType"] = config.userInfoType.toString().lowercase()
+                dataMap["error"] = "error.request.${status.value.toString().lowercase()}"
 
                 // GET request
                 if (config.userPreferencesManager.username != null)

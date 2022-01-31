@@ -6,7 +6,7 @@
 
     <groupId>io.curity.identityserver.plugin</groupId>
     <artifactId>identityserver.plugins.authenticators.freja-eid</artifactId>
-    <version>4.0.0</version>
+    <version>4.0.1</version>
     <packaging>jar</packaging>
 
     <name>Curity Verisec Authenticator</name>

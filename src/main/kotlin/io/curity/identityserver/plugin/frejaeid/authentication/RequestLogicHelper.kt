@@ -185,7 +185,7 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
 
     private fun encodeAndPost(path: String, paramName: String, requestParams: Map<String, Any>) : HttpResponse
     {
-        val requestJson = _json.toJson(requestParams)
+        val requestJson = buildJsonAuthRequest(requestParams)
         val encodedRequest = Base64.getEncoder().encodeToString(requestJson.toByteArray())
         val authResultRequest = "$paramName=${encodedRequest}"
         val requestBody = _relyingPartyId?.let { "$authResultRequest&relyingPartyId=$it" } ?: authResultRequest
@@ -221,6 +221,18 @@ class RequestLogicHelper(private val config: FrejaEidAuthenticatorPluginConfig)
     fun generateAppLink(authRef: String): String
     {
         return "frejaeid://bindUserToTransaction?transactionReference=$authRef"
+    }
+
+    private fun buildJsonAuthRequest(postData: Map<String, Any>): String
+    {
+        return "{" + postData.map {
+            val value = when
+            {
+                it.value is String -> "\"" + it.value + "\""
+                else -> _json.toJson(it.value)
+            }
+            "\"" + it.key + "\"" + ":" + value
+        }.joinToString() + "}"
     }
 
     fun extractAttributesFromJwt(responseData: Map<String, Any>): Attributes

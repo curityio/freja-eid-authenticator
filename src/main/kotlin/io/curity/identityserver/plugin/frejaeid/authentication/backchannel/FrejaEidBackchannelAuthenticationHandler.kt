@@ -34,9 +34,8 @@ import se.curity.identityserver.sdk.authentication.BackchannelStartAuthenticatio
 import se.curity.identityserver.sdk.errors.ErrorCode
 import java.util.Optional
 
-class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthenticatorPluginConfig)
-    : BackchannelAuthenticationHandler
-{
+class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthenticatorPluginConfig) :
+    BackchannelAuthenticationHandler {
     private val _logger: Logger = LoggerFactory.getLogger(FrejaEidBackchannelAuthenticationHandler::class.java)
 
     private val _requestLogicHelper = RequestLogicHelper(config)
@@ -44,53 +43,50 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
     private val _sessionManager = config.sessionManager
 
     override fun startAuthentication(authReqId: String, authRequest: BackchannelAuthenticationRequest):
-            BackchannelStartAuthenticationResult
-    {
+            BackchannelStartAuthenticationResult {
         _logger.debug("Starting Freja eid backchannel authentication for ${authRequest.subject} with $authReqId")
 
         // the requested subject must match the _userInfoType, else Freja would respond with error
         val postData = _requestLogicHelper.createPostData(_userInfoType, authRequest.subject).toMutableMap()
 
-        return try
-        {
-            when
-            {
+        return try {
+            when {
                 // when binding message is present, use sign method instead of authenticate
                 authRequest.bindingMessage != null -> {
                     if (requestSignature(authReqId, authRequest.bindingMessage, postData)) {
                         BackchannelStartAuthenticationResult.ok()
-                    }
-                    else {
-                        BackchannelStartAuthenticationResult.error("server_error",
-                                "Failed Freja signature request")
+                    } else {
+                        BackchannelStartAuthenticationResult.error(
+                            "server_error",
+                            "Failed Freja signature request"
+                        )
                     }
                 }
 
                 else -> {
                     if (requestAuthentication(authReqId, postData)) {
                         BackchannelStartAuthenticationResult.ok()
-                    }
-                    else {
-                        BackchannelStartAuthenticationResult.error("server_error",
-                                "Failed Freja authentication request")
+                    } else {
+                        BackchannelStartAuthenticationResult.error(
+                            "server_error",
+                            "Failed Freja authentication request"
+                        )
                     }
                 }
             }
-        }
-        catch (e: Exception)
-        {
+        } catch (e: Exception) {
             _logger.debug("Freja backchannel authentication not started for $authReqId. ${e.message}")
-            BackchannelStartAuthenticationResult.error("server_error",
-                    "Failed Freja request")
+            BackchannelStartAuthenticationResult.error(
+                "server_error",
+                "Failed Freja request"
+            )
         }
     }
 
-    private fun requestAuthentication(authReqId: String, postData: Map<String, Any>): Boolean
-    {
+    private fun requestAuthentication(authReqId: String, postData: Map<String, Any>): Boolean {
         val responseData = _requestLogicHelper.requestAuthentication(postData)
         val authRef = responseData["authRef"]?.toString()
-        if (authRef != null)
-        {
+        if (authRef != null) {
             _logger.trace("Freja eid authentication returned $authRef for authReqId : $authReqId")
             config.sessionManager.put(Attribute.of(SESSION_AUTH_REF, authRef))
             return true
@@ -99,13 +95,11 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
         return false
     }
 
-    private fun requestSignature(authReqId: String, bindingMessage: String, postData: Map<String, Any>): Boolean
-    {
+    private fun requestSignature(authReqId: String, bindingMessage: String, postData: Map<String, Any>): Boolean {
         val postDataWithSignableText = _requestLogicHelper.addSignTextToPostData(bindingMessage, postData)
         val responseData = _requestLogicHelper.requestSignature(postDataWithSignableText)
         val signRef = responseData["signRef"]?.toString()
-        if (signRef != null)
-        {
+        if (signRef != null) {
             _logger.trace("Freja eid sign request returned $signRef for authReqId : $authReqId")
             config.sessionManager.put(Attribute.of(SESSION_SIGN_REF, signRef))
             return true
@@ -114,16 +108,13 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
         return false
     }
 
-    override fun checkAuthenticationStatus(authReqId: String): Optional<BackchannelAuthenticationResult>
-    {
+    override fun checkAuthenticationStatus(authReqId: String): Optional<BackchannelAuthenticationResult> {
         _logger.debug("Checking Freja eid backchannel authentication status for $authReqId")
         val authRefAttribute = _sessionManager.get(SESSION_AUTH_REF)
 
-        val responseData = when
-        {
+        val responseData = when {
             authRefAttribute != null -> _requestLogicHelper.checkAuthenticationStatus(authRefAttribute)
-            else ->
-            {
+            else -> {
                 val signRefAttribute = _sessionManager.get(SESSION_SIGN_REF)
                 _requestLogicHelper.checkSignatureStatus(signRefAttribute)
             }
@@ -133,51 +124,46 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
         return Optional.of(createBackchannelAuthenticationResult(responseData))
     }
 
-    override fun cancelAuthenticationRequest(authReqId: String)
-    {
+    override fun cancelAuthenticationRequest(authReqId: String) {
         _logger.debug("Canceling Freja eid authentication for $authReqId")
         val authRefAttribute: Attribute? = _sessionManager.get(SESSION_AUTH_REF)
 
-        if (authRefAttribute != null)
-        {
+        if (authRefAttribute != null) {
             _requestLogicHelper.cancelAuthenticationRequest(authRefAttribute)
             config.sessionManager.remove(SESSION_AUTH_REF)
-        }
-        else
-        {
+        } else {
             val signRefAttribute: Attribute? = _sessionManager.get(SESSION_SIGN_REF)
             signRefAttribute?.let { _requestLogicHelper.cancelSignRequest(it) }
-                    ?: throw config.exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE,
-                            "authRef cannot be null")
+                ?: throw config.exceptionFactory.badRequestException(
+                    ErrorCode.INVALID_SERVER_STATE,
+                    "authRef cannot be null"
+                )
             config.sessionManager.remove(SESSION_SIGN_REF)
         }
     }
 
     private fun createBackchannelAuthenticationResult(responseData: Map<String, Any>)
-            : BackchannelAuthenticationResult
-    {
-        return when (responseData["status"])
-        {
+            : BackchannelAuthenticationResult {
+        return when (responseData["status"]) {
             // Reference : https://frejaeid.com/rest-api/Authentication%20Service.html
-            "APPROVED" ->
-            {
+            "APPROVED" -> {
                 val authnAttributes = extractAuthnAttributesFromSuccessResponse(responseData)
                 BackchannelAuthenticationResult(authnAttributes, BackchannelAuthenticatorState.SUCCEEDED)
             }
-            "STARTED", "DELIVERED_TO_MOBILE" ->
-            {
+
+            "STARTED", "DELIVERED_TO_MOBILE" -> {
                 BackchannelAuthenticationResult(null, BackchannelAuthenticatorState.STARTED)
             }
-            "EXPIRED", "RP_CANCELED" ->
-            {
+
+            "EXPIRED", "RP_CANCELED" -> {
                 BackchannelAuthenticationResult(null, BackchannelAuthenticatorState.EXPIRED)
             }
-            "REJECTED", "CANCELED" ->
-            {
+
+            "REJECTED", "CANCELED" -> {
                 BackchannelAuthenticationResult(null, BackchannelAuthenticatorState.FAILED)
             }
-            else ->
-            {
+
+            else -> {
                 _logger.info("Unknown status received : ${responseData["status"]}")
                 BackchannelAuthenticationResult(null, BackchannelAuthenticatorState.UNKNOWN)
             }
@@ -185,15 +171,36 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
     }
 
     private fun extractAuthnAttributesFromSuccessResponse(successResponseData: Map<String, Any>)
-            : AuthenticationAttributes
-    {
+            : AuthenticationAttributes {
         val claimsMap = _requestLogicHelper.extractAttributesFromJwt(successResponseData)
-        _logger.trace("Attributes received in response : $claimsMap")
+        _logger.trace("Attributes received in response : {}", claimsMap)
 
-        val subject = claimsMap.getMandatoryValue("userInfo", String::class.java)
+        return when (claimsMap.getOptionalValue("userInfoType")) {
+            "SSN" -> {
+                val userInfo = claimsMap.get("userInfo")
+                if (userInfo !is Map<*, *>) {
+                    throw IllegalStateException(
+                        "Invalid userInfo for userInfoType: 'SSN': expected object, found " +
+                                userInfo?.javaClass?.name + " instead"
+                    )
+                }
+                val subject = userInfo["ssn"] as? String
+                    ?: throw IllegalStateException("Missing SSN for userInfoType: 'SSN'")
 
-        return AuthenticationAttributes.of(
-                SubjectAttributes.of(subject, claimsMap),
-                ContextAttributes.empty())
+                AuthenticationAttributes.of(
+                    SubjectAttributes.of(subject, claimsMap),
+                    ContextAttributes.empty()
+                )
+            }
+
+            else -> {
+                val subject = claimsMap.getMandatoryValue("userInfo", String::class.java)
+
+                AuthenticationAttributes.of(
+                    SubjectAttributes.of(subject, claimsMap),
+                    ContextAttributes.empty()
+                )
+            }
+        }
     }
 }

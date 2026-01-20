@@ -23,6 +23,7 @@ import io.curity.identityserver.plugin.frejaeid.config.FrejaEidAuthenticatorPlug
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import se.curity.identityserver.sdk.attribute.Attribute
+import se.curity.identityserver.sdk.attribute.Attributes
 import se.curity.identityserver.sdk.attribute.AuthenticationAttributes
 import se.curity.identityserver.sdk.attribute.ContextAttributes
 import se.curity.identityserver.sdk.attribute.SubjectAttributes
@@ -177,20 +178,17 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
 
         return when (claimsMap.getOptionalValue("userInfoType")) {
             "SSN" -> {
-                val userInfo = claimsMap.get("userInfo")
-                if (userInfo !is Map<*, *>) {
-                    throw IllegalStateException(
+                when (val userInfo: Any? = claimsMap.getOptionalValue("userInfo")) {
+                    is Map<*, *> -> ssnUserInfoAuthenticationAttributes(userInfo, claimsMap)
+                    is String ->
+                        ssnUserInfoAuthenticationAttributes(config.json.fromJson(userInfo), claimsMap)
+
+                    else -> throw IllegalStateException(
                         "Invalid userInfo for userInfoType: 'SSN': expected object, found " +
                                 userInfo?.javaClass?.name + " instead"
                     )
                 }
-                val subject = userInfo["ssn"] as? String
-                    ?: throw IllegalStateException("Missing SSN for userInfoType: 'SSN'")
 
-                AuthenticationAttributes.of(
-                    SubjectAttributes.of(subject, claimsMap),
-                    ContextAttributes.empty()
-                )
             }
 
             else -> {
@@ -202,5 +200,22 @@ class FrejaEidBackchannelAuthenticationHandler(private val config: FrejaEidAuthe
                 )
             }
         }
+    }
+
+    /**
+     * Obtain the [AuthenticationAttributes] for a [userInfo]
+     * of userInfoType `SSN`.
+     */
+    private fun ssnUserInfoAuthenticationAttributes(
+        userInfo: Map<*, *>,
+        claimsMap: Attributes,
+    ): AuthenticationAttributes {
+        val subject = userInfo["ssn"] as? String
+            ?: throw IllegalStateException("Missing SSN for userInfoType: 'SSN'")
+
+        return AuthenticationAttributes.of(
+            SubjectAttributes.of(subject, claimsMap),
+            ContextAttributes.empty()
+        )
     }
 }

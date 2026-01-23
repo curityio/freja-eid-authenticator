@@ -30,10 +30,8 @@ import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel.templateResponseModel
 import java.net.MalformedURLException
-import java.net.URL
-import java.util.*
-import kotlin.collections.HashMap
-import kotlin.collections.set
+import java.net.URI
+import java.util.Optional
 
 class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
                           private val authenticatedState: AuthenticatedState)
@@ -48,7 +46,7 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
     {
         val dataMap = HashMap<String, Any>(2)
 
-        dataMap["userInfoType"] = _userInfoType.toString().toLowerCase()
+        dataMap["userInfoType"] = _userInfoType.toString().lowercase()
 
         if (request.isGetRequest)
         {
@@ -133,8 +131,9 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
         try
         {
             val authUri = config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri
-
-            return URL(authUri.toURL(), authUri.path + "/wait").toString()
+            val baseUri = URI(authUri.scheme, authUri.authority, authUri.path, authUri.query, authUri.fragment)
+            val waitUri = baseUri.resolve("wait")
+            return waitUri.toURL().toString()
         }
         catch (e: MalformedURLException)
         {

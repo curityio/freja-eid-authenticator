@@ -17,56 +17,47 @@
 package io.curity.identityserver.plugin.frejaeid.authentication
 
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
-import org.hibernate.validator.constraints.Email
-import org.hibernate.validator.constraints.NotBlank
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Email
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
 import se.curity.identityserver.sdk.web.Request
-import javax.validation.Valid
-import javax.validation.constraints.Pattern
 
-class RequestModel(request: Request, userInfoType: UserInfoType?)
-{
+class RequestModel(request: Request, userInfoType: UserInfoType?) {
     @Valid
-    val postRequestModel: Post? = if (request.isPostRequest)
-    {
-        when (userInfoType)
-        {
+    val postRequestModel: Post? = if (request.isPostRequest) {
+        when (userInfoType) {
             UserInfoType.SSN -> SSNRequestModel(request)
             UserInfoType.EMAIL -> EmailModel(request)
             UserInfoType.PHONE -> PhoneRequestModel(request)
             else -> WaitModel(request)
         }
-    }
-    else
-    {
+    } else {
         null
     }
 }
 
 sealed class Post
 
-class SSNRequestModel(request: Request) : Post()
-{
+class SSNRequestModel(request: Request) : Post() {
     @Pattern(regexp = "[0-9]{12}", message = "validation.error.ssn.invalid")
     @NotBlank(message = "validation.error.ssn.required")
     val username: String = request.getFormParameterValueOrError("username")
 }
 
-class EmailModel(request: Request) : Post()
-{
+class EmailModel(request: Request) : Post() {
     @Email(message = "validation.error.email.invalid")
     @NotBlank(message = "validation.error.email.required")
     val username: String = request.getFormParameterValueOrError("username")
 }
 
-class PhoneRequestModel(request: Request) : Post()
-{
+class PhoneRequestModel(request: Request) : Post() {
     @Pattern(regexp = "^\\+[0-9]{11}", message = "validation.error.phone.invalid")
     @NotBlank(message = "validation.error.phone.required")
     val username: String = request.getFormParameterValueOrError("username")
 }
 
-class WaitModel(request: Request) : Post()
-{
+class WaitModel(request: Request) : Post() {
     val moveOn: Boolean = "true" == request.getFormParameterValueOrError("moveOn")
     val cancel: Boolean = "true" == request.getFormParameterValueOrError("cancel")
 }

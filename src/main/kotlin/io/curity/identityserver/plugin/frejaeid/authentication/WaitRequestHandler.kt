@@ -39,7 +39,11 @@ import io.curity.identityserver.plugin.frejaeid.config.PredefinedEnvironment
 import io.curity.identityserver.plugin.frejaeid.config.UserInfoType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import se.curity.identityserver.sdk.attribute.*
+import se.curity.identityserver.sdk.attribute.Attribute
+import se.curity.identityserver.sdk.attribute.Attributes
+import se.curity.identityserver.sdk.attribute.AuthenticationAttributes
+import se.curity.identityserver.sdk.attribute.ContextAttributes
+import se.curity.identityserver.sdk.attribute.SubjectAttributes
 import se.curity.identityserver.sdk.authentication.AuthenticationResult
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler
 import se.curity.identityserver.sdk.errors.ErrorCode
@@ -48,9 +52,7 @@ import se.curity.identityserver.sdk.http.RedirectStatusCode
 import se.curity.identityserver.sdk.web.Request
 import se.curity.identityserver.sdk.web.Response
 import se.curity.identityserver.sdk.web.ResponseModel
-import java.util.*
-import kotlin.collections.HashMap
-import kotlin.collections.set
+import java.util.Optional
 
 class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) : AuthenticatorRequestHandler<RequestModel>
 {
@@ -218,8 +220,8 @@ class WaitRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig) 
             {
                 val dataMap: HashMap<String, Any> = HashMap(2)
 
-                dataMap["userInfoType"] = config.userInfoType.toString().toLowerCase()
-                dataMap["error"] = "error.request.${status.value.toString().toLowerCase()}"
+                dataMap["userInfoType"] = config.userInfoType.toString().lowercase()
+                dataMap["error"] = "error.request.${status.value.toString().lowercase()}"
 
                 // GET request
                 if (config.userPreferencesManager.username != null)

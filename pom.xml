@@ -6,14 +6,14 @@
 
     <groupId>io.curity.identityserver.plugin</groupId>
     <artifactId>identityserver.plugins.authenticators.freja-eid</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1</version>
     <packaging>jar</packaging>
 
     <name>Curity FrejaID Authenticator</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.curityVersion>9.4.0</project.curityVersion>
+        <project.curityVersion>10.7.1</project.curityVersion>
         <project.slf4jVersion>2.0.12</project.slf4jVersion>
         <kotlin.version>2.0.0</kotlin.version>
     </properties>
@@ -76,10 +76,10 @@
     </dependencies>
 
     <distributionManagement>
-        <snapshotRepository>
-            <id>customer-snapshot-repo</id>
+        <repository>
+            <id>curity-release-repo</id>
             <name>Curity Nexus Snapshot Repository</name>
-            <url>https://nexus.curityio.net/repository/customer-snapshot-repo/</url>
-        </snapshotRepository>
+            <url>https://hub.curityio.net/repository/curity-release-repo/</url>
+        </repository>
     </distributionManagement>
 </project>

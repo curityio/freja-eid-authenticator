@@ -128,17 +128,6 @@ class StartRequestHandler(private val config: FrejaEidAuthenticatorPluginConfig,
 
     private fun getWaitHandlerUrl(): String
     {
-        try
-        {
-            val authUri = config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri
-            val baseUri = URI(authUri.scheme, authUri.authority, authUri.path, authUri.query, authUri.fragment)
-            val waitUri = baseUri.resolve("wait")
-            return waitUri.toURL().toString()
-        }
-        catch (e: MalformedURLException)
-        {
-            throw _exceptionFactory.internalServerException(ErrorCode.INVALID_REDIRECT_URI,
-                    "Could not create redirect URI")
-        }
+        return "${config.authenticatorInformationProvider.fullyQualifiedAuthenticationUri}/wait"
     }
 }

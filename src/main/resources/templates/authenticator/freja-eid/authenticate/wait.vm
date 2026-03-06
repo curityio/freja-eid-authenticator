@@ -50,7 +50,7 @@
     </div>
     <form name="cancel" id="cancel" class="manuallink display-none" action="$_action" method="post">
         <input type="hidden" name="cancel" value="true"/>
-        <button type="submit" class="button button-fullwidth button-danger-outline">#message(
+        <button type="submit" class="button button-fullwidth button-primary-outline">#message(
             "authenticator.freja-eid.authenticate.wait.cancel")</button>
     </form>
         #parse("fragments/generic-poller")
